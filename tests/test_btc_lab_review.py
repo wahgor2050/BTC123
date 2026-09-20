@@ -94,7 +94,9 @@ class TestAnalyse(unittest.TestCase):
             marks = marks or [100.0] * len(navs)
             eq = [eq_row(sid, T0 + i * step, navs[i], mark=marks[i], exposure=exposure)
                   for i in range(len(navs))]
-            write_fixture(d, T0, {sid: acct(sid)}, list(orders), eq)
+            kind = ("rvol_breakout" if sid.startswith("rvol")
+                    else ("funding_limit" if sid.startswith("funding") else "sma_trend"))
+            write_fixture(d, T0, {sid: acct(sid, kind=kind)}, list(orders), eq)
             r = rev.build_review(d)
             return r["results"][0]
 
@@ -154,12 +156,77 @@ class TestAnalyse(unittest.TestCase):
                        order_row(sid, "SELL", ts + DAY, 1, 0, -100.0)]
         navs = [100000.0 - i * 10 for i in range(360)]
         r = self._review(91, navs=navs, orders=orders, marks=[100.0] * 360, sid=sid)
-        self.assertIn("TRIGGERED", r["verdict"]["R3_b_episodes"])
+        self.assertIn("TRIGGERED", r["verdict"]["R3_episodes"])
 
     def test_control_is_btc_move_times_mean_exposure(self):
         marks = [100.0, 105.0, 110.0, 110.0]
         r = self._review(10, navs=[100000.0] * 4, marks=marks, exposure=50.0)
         self.assertAlmostEqual(r["control_return_pct"], 10.0 * 0.5, places=3)
+
+
+def opp_row(sid, ts, decision, reason="t"):
+    return {"event_id": "%s:%d" % (sid, ts), "strategy": sid, "signal_ts": str(ts),
+            "signal_time": rev.iso(ts), "observed_ts": str(ts), "observed_late": "False",
+            "close": "", "high24": "", "sma_fast": "", "sma_slow": "", "sigma_ann": "",
+            "rvol_num": "", "rvol_den": "", "rvol": "", "target_weight": "",
+            "cooldown_ok": "", "gate": "", "decision": decision, "reason": reason,
+            "data_status": "ok", "venue": "bitstamp:btcusd", "schema": "1"}
+
+
+class TestFundingReview(unittest.TestCase):
+    SID = "funding_z168_limit_entry_v1"
+
+    def _review_c(self, days, orders=(), opps=(), act_offset_days=0, ref=False):
+        with tempfile.TemporaryDirectory() as d:
+            n = max(2, int(days * 4))
+            act = T0 + act_offset_days * DAY
+            step = int(days * DAY / (n - 1))
+            eq = [eq_row(self.SID, act + i * step, 100000.0) for i in range(n)]
+            a = acct(self.SID, kind="funding_limit")
+            a["activation_ts"] = act               # own epoch, later than the lab's
+            write_fixture(d, T0, {self.SID: a}, list(orders), eq, opps=list(opps))
+            if ref:                                # reference exists for A/B only
+                with open(os.path.join(d, "backtest_reference.json"), "w") as fh:
+                    json.dump({"source": "stub", "generated_utc": "x",
+                               "strategies": {}}, fh)
+            return rev.build_review(d)["results"][0], rev.render_markdown(
+                rev.build_review(d))
+
+    def test_own_activation_clock_and_coverage(self):
+        r, _ = self._review_c(10, act_offset_days=30)   # lab started 30d earlier
+        self.assertAlmostEqual(r["forward_days"], 10.0, places=1)
+        self.assertLessEqual(r["coverage_pct"], 100.0)  # no phantom missed hours
+
+    def test_fill_funnel_counts_and_rate(self):
+        opps = ([opp_row(self.SID, T0 + k * DAY, "resting_placed", "funding_z_entry")
+                 for k in range(4)]
+                + [opp_row(self.SID, T0 + 10 * DAY, "expired", "expired_unfilled"),
+                   opp_row(self.SID, T0 + 11 * DAY, "cancelled", "cancelled_z_reverted")])
+        orders = [order_row(self.SID, "BUY", T0 + DAY, 0, 1, 0)]
+        orders[0]["reason"] = "limit_fill_entry"
+        orders[0]["lateness_sec"] = "7200"
+        r, md = self._review_c(35, orders=orders, opps=opps)
+        ff = r["fill_funnel"]
+        self.assertEqual((ff["placed"], ff["filled"], ff["expired"], ff["cancelled"]),
+                         (4, 1, 1, 1))
+        self.assertAlmostEqual(ff["fill_rate_pct"], 25.0, places=1)
+        self.assertEqual(ff["median_place_to_fill_min"], 120)
+        self.assertIn("成交漏斗", md)
+
+    def test_r5c_fillrate_retire_at_180d(self):
+        opps = [opp_row(self.SID, T0 + k * DAY, "resting_placed", "funding_z_entry")
+                for k in range(12)]
+        orders = [order_row(self.SID, "BUY", T0 + DAY, 0, 1, 0)]
+        orders[0]["reason"] = "limit_fill_entry"        # 1/12 = 8.3% <= 25%
+        r, _ = self._review_c(181, orders=orders, opps=opps)
+        self.assertIn("TRIGGERED", r["verdict"]["R5c_fillrate"])
+        # under 180d: rule not yet applicable
+        r2, _ = self._review_c(91, orders=orders, opps=opps)
+        self.assertNotIn("R5c_fillrate", r2["verdict"])
+
+    def test_backtest_reference_is_na_by_design(self):
+        r, md = self._review_c(35, ref=True)
+        self.assertIn("N/A — by design", md)
 
 
 class TestDeterminismAndReference(unittest.TestCase):

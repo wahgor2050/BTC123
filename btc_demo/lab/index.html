@@ -9,7 +9,7 @@
     --bg:#0b0e14; --panel:#131722; --panel2:#1a1f2e; --line:#262b3a;
     --text:#d6dbe6; --muted:#7d879c; --up:#26a69a; --down:#ef5350;
     --accent:#4c9ffe; --warn:#f0b90b;
-    --c-base:#f0b90b; --c-sma:#4c9ffe; --c-rvol:#26a69a; --c-btc:#8a93a8;
+    --c-base:#f0b90b; --c-sma:#4c9ffe; --c-rvol:#26a69a; --c-fund:#b085f5; --c-btc:#8a93a8;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
@@ -87,7 +87,8 @@
     <div class="legend" id="legend"></div>
     <div class="chartwrap"><div id="retchart"></div><div class="tip" id="rettip"></div></div>
     <div class="muted">實線=伺服器已保存快照;虛線尾+空心點=即時估值(未保存,只用最後已保存倉位重新標價)。
-      基準線同兩個新帳戶執行/成本模型唔同,只做重新起步後嘅百分比比較;BTC 買入持有線只係參考,唔係及格線。</div>
+      基準線同各新帳戶執行/成本模型唔同,只做重新起步後嘅百分比比較;BTC 買入持有線只係參考,唔係及格線。
+      候選C係後加(2026-09-21),條線由佢自己嘅獨立紀元開始,唔可以同 A/B 直接逐點比較。</div>
   </section>
 
   <section>
@@ -113,9 +114,14 @@
   </section>
 </main>
 <footer>
-  兩個候選(SMA 1/30、RVOL 放量突破)都係事後選出、樣本薄、對成本敏感嘅研究線索 —
+  候選A(SMA 1/30)同候選B(RVOL 放量突破)係事後選出、樣本薄、對成本敏感嘅研究線索 —
   獨立審核只確認「數字計啱」,並冇確認到可靠優勢;RVOL 候選喺自己預設嘅對照測試都未過關。<br>
-  所有成交都係模擬:mid=(bid+ask)/2,買=max(ask, mid×1.0002),賣=min(bid, mid×0.9998),每邊 0.1% 費用;
+  候選C(資金費率極端限價入市)係<b>執行假說測試</b>:訊號零成本下有真資訊,但 taker 成本下 backtest 蝕錢(−12.6%),
+  maker 假設賺(+9.3%)嗰個數假設咗 100% 成交率 — 呢個帳戶測嘅係「掛限價單實際接唔接到貨」,唔係「已驗證策略」。
+  佢用兩個數據源(Bitstamp 現貨價格 + Kraken 資金費率),入市限價 maker 2bp、出市照 A/B taker 模型,
+  K線低位掂價先當成交,接唔到貨嘅嘗試會記做過期,唔會老作。規格喺前向數據出現之前已凍結
+  (<a href="https://github.com/wahgor2050/BTC123/blob/main/btc_demo/lab/funding_candidate_spec.md">funding_candidate_spec.md</a>)。<br>
+  A/B 成交模擬:mid=(bid+ask)/2,買=max(ask, mid×1.0002),賣=min(bid, mid×0.9998),每邊 0.1% 費用;
   呢啲係透明嘅紙上假設,唔係保證成交得到嘅價。<br>
   每小時第 7 分鐘由 GitHub Actions 收集及保存;排程唔保證準時,超過 20 分鐘嘅入市機會會記做 missed,
   唔會用歷史價補做;到期平倉遲咗都會用新鮮報價執行並記低遲到時間。網頁閂咗嘅時候,後台每小時照樣記錄;
@@ -132,14 +138,15 @@ const NS="http://www.w3.org/2000/svg";
 const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
 const fmtT = ts => new Date(ts*1000).toISOString().slice(0,16).replace("T"," ")+" UTC";
 
-const SIDS = ["sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1"];
+const SIDS = ["sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1","funding_z168_limit_entry_v1"];
 const META = {
   baseline:{name:"現有基準 (日線 SMA3/30)",color:"var(--c-base)",hex:"#f0b90b",dash:"6 4"},
   sma_1d_30d_v25_v1:{name:"SMA 1/30 (候選A)",color:"var(--c-sma)",hex:"#4c9ffe",dash:""},
   rvol2_breakout24h_v25_v1:{name:"RVOL 放量突破 (候選B)",color:"var(--c-rvol)",hex:"#26a69a",dash:""},
+  funding_z168_limit_entry_v1:{name:"資金費率極端限價入市 (候選C·執行假說)",color:"var(--c-fund)",hex:"#b085f5",dash:""},
   btc:{name:"BTC 買入持有 (參考)",color:"var(--c-btc)",hex:"#8a93a8",dash:"2 4"},
 };
-let D=null, live=null, show={baseline:true,sma_1d_30d_v25_v1:true,rvol2_breakout24h_v25_v1:true,btc:true};
+let D=null, live=null, show={baseline:true,sma_1d_30d_v25_v1:true,rvol2_breakout24h_v25_v1:true,funding_z168_limit_entry_v1:true,btc:true};
 
 function seriesData(){
   const out={};
@@ -267,7 +274,7 @@ function drawAll(){
 
 function legend(){
   const host=$("legend");host.innerHTML="";
-  for(const k of ["baseline","sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1","btc"]){
+  for(const k of ["baseline","sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1","funding_z168_limit_entry_v1","btc"]){
     const lab=document.createElement("label");
     lab.innerHTML=`<input type="checkbox" ${show[k]?"checked":""}> <span class="dot" style="background:${META[k].hex}"></span> ${META[k].name}`;
     lab.querySelector("input").addEventListener("change",e=>{show[k]=e.target.checked;drawAll();});
@@ -298,6 +305,10 @@ function cards(){
     const lowSample=a.episodes<20;
     const extra = sid==="rvol2_breakout24h_v25_v1"&&a.exit_due_time?
       `<div class="kv"><span class="k">持倉到期</span><span>${a.exit_due_time}</span></div>`:"";
+    const rest = a.resting?
+      `<div class="kv"><span class="k">🕐 掛單中(限價買,成交先算)</span><span>@ ${money(a.resting.limit_px)} · ${(a.resting.placed_time||"").slice(11,16)} 掛 · ${(a.resting.deadline_time||"").slice(11,16)} 到期</span></div>`:"";
+    const own = a.activation_utc && a.activation_utc!==D.activation_utc?
+      `<div class="kv"><span class="k">自身開始(獨立紀元)</span><span>${a.activation_utc}</span></div>`:"";
     const pend=(a.pending||[]).length?`<div class="kv"><span class="k">⚠ 未解決</span><span>${a.pending.map(p=>p.kind).join(", ")}</span></div>`:"";
     const html=`
       <div class="kv"><span class="k">NAV(伺服器已保存)</span><span class="${cls(savedNav-100000)}">${money(savedNav)}</span></div>
@@ -307,7 +318,7 @@ function cards(){
       <div class="kv"><span class="k">持倉</span><span>${(+a.qty).toFixed(6)} BTC(佔 ${snap.exposure_pct||0}%)</span></div>
       <div class="kv"><span class="k">完成回合 / 落單數</span><span>${a.episodes} / ${a.order_count} ${lowSample?'<span class="pill">樣本不足</span>':""}</span></div>
       <div class="kv"><span class="k">累計費用</span><span>${money(a.fees_cum)}</span></div>
-      ${extra}${pend}
+      ${extra}${rest}${own}${pend}
       <div class="kv"><span class="k">參數版本</span><span>${a.version} · ${a.param_hash}${a.paused?' · <b style="color:var(--warn)">已暫停新開倉</b>':""}</span></div>`;
     host.appendChild(cardEl(sid,META[sid].name,html,""));
   }
@@ -353,8 +364,11 @@ function tables(){
      <a href="orders_${mk}.csv">orders_${mk}.csv</a> ·
      <a href="opportunities_${mk}.csv">opportunities_${mk}.csv</a> ·
      <a href="equity_${mk}.csv">equity_${mk}.csv</a> ·
+     <a href="funding_signal_${mk}.csv">funding_signal_${mk}.csv</a> ·
      <a href="https://github.com/wahgor2050/BTC123/blob/main/btc_demo/lab/evaluation_protocol.md">預先登記評估規則(凍結於啟動日)</a>${
        (D.evaluation_protocol||{}).sha256?` <span class="muted">sha256 ${(D.evaluation_protocol.sha256).slice(0,12)}…</span>`:""} ·
+     <a href="https://github.com/wahgor2050/BTC123/blob/main/btc_demo/lab/funding_candidate_spec.md">候選C規格(數據出現前凍結)</a>${
+       (D.funding_candidate_spec||{}).sha256?` <span class="muted">sha256 ${(D.funding_candidate_spec.sha256).slice(0,12)}…</span>`:""} ·
      <a href="https://github.com/wahgor2050/BTC123/tree/main/btc_demo/lab">GitHub 上全部月份檔案 →</a>`;
 }
 

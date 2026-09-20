@@ -40,8 +40,10 @@ DAY = 86400
 
 MDD_RETIRE_PCT = -30.0          # R1, anytime
 RET180_RETIRE_PCT = -20.0       # R2, at >=180d checkpoint
-B_RETIRE_MIN_EPISODES = 10      # R3
-B_ESCALATE_MIN_EPISODES = 8     # E4
+B_RETIRE_MIN_EPISODES = 10      # R3 / R3c (episodic strategies: B and C)
+B_ESCALATE_MIN_EPISODES = 8     # E4 / E4c
+FUNDING_RETIRE_MIN_PLACED = 12  # R5c: resting orders placed …
+FUNDING_RETIRE_FILLRATE_PCT = 25.0   # … with fill rate at/below this, at T+180
 VERDICT_MIN_DAYS = 30
 ESCALATE_MIN_DAYS = 90
 
@@ -104,7 +106,10 @@ def analyse_account(sid, acct, state, orders, opps, equity):
     ods = [o for o in orders if o["strategy"] == sid]
     ops = [o for o in opps if o["strategy"] == sid]
     start_cash = float(acct.get("start_cash", 100000.0))
-    activation_ts = int(state["activation_ts"])
+    # later-added accounts (candidate C) carry their OWN activation epoch —
+    # forward_days and expected snapshot coverage both start there, not at
+    # the lab's original activation
+    activation_ts = int(acct.get("activation_ts") or state["activation_ts"])
     out = {"strategy_id": sid, "params": acct.get("params", {}),
            "param_hash": acct.get("param_hash"), "paused": acct.get("paused", False),
            "start_cash": start_cash}
@@ -143,6 +148,23 @@ def analyse_account(sid, acct, state, orders, opps, equity):
     for o in ops:
         dec_counts[o["decision"]] = dec_counts.get(o["decision"], 0) + 1
 
+    # candidate C: resting-limit-order fill funnel (protocol §9.3 — the whole
+    # point of that account is these counts)
+    fill_funnel = None
+    if (acct.get("params") or {}).get("kind") == "funding_limit":
+        placed = dec_counts.get("resting_placed", 0)
+        filled = sum(1 for o in ods
+                     if o["side"] == "BUY" and o.get("reason") == "limit_fill_entry")
+        fill_funnel = {
+            "placed": placed, "filled": filled,
+            "expired": dec_counts.get("expired", 0),
+            "cancelled": dec_counts.get("cancelled", 0),
+            "fill_rate_pct": round(filled / placed * 100, 1) if placed else None,
+            "median_place_to_fill_min": (sorted(
+                int(o["lateness_sec"]) // 60 for o in ods
+                if o["side"] == "BUY" and o.get("reason") == "limit_fill_entry")
+                [filled // 2] if filled else None)}
+
     # date-matched control (protocol §5): BTC move × mean exposure fraction
     marks = [float(r["mark"]) for r in eq]
     mean_expo = sum(float(r["exposure_pct"]) for r in eq) / len(eq) / 100.0
@@ -164,6 +186,7 @@ def analyse_account(sid, acct, state, orders, opps, equity):
                 "snapshots": len(navs), "snapshots_expected": expected_snaps,
                 "coverage_pct": round(coverage_pct, 1),
                 "opportunity_decisions": dec_counts,
+                "fill_funnel": fill_funnel,
                 "mean_exposure_pct": round(mean_expo * 100, 2),
                 "control_return_pct": None if control_ret_pct is None else round(control_ret_pct, 3)})
     out["verdict"] = verdict(sid, out)
@@ -171,10 +194,15 @@ def analyse_account(sid, acct, state, orders, opps, equity):
 
 
 def verdict(sid, m):
-    """Apply the frozen protocol rules. Returns dict of rule -> status text."""
+    """Apply the frozen protocol rules. Returns dict of rule -> status text.
+    Episodic rules (R3/E4) route on params.kind — B (rvol_breakout) per
+    protocol v1, C (funding_limit) per the v1.1 §9 addendum with the same
+    thresholds; C additionally carries the R5c fill-rate retire line."""
     v = {}
     days = m["forward_days"]
-    is_b = sid.startswith("rvol")
+    kind = (m.get("params") or {}).get("kind")
+    episodic = kind in ("rvol_breakout", "funding_limit")
+    is_funding = kind == "funding_limit"
     # R1 applies anytime
     if m["mdd_pct"] <= MDD_RETIRE_PCT:
         v["R1_mdd"] = "TRIGGERED — MDD %.1f%% ≤ %.0f%%,按規則應退役(--pause)" % (
@@ -189,14 +217,25 @@ def verdict(sid, m):
         v["R2_return180"] = "TRIGGERED — 淨回報 %.1f%% ≤ %.0f%%" % (m["return_pct"], RET180_RETIRE_PCT)
     elif days >= 180:
         v["R2_return180"] = "ok(%.1f%%)" % m["return_pct"]
-    if is_b and days >= 90:
+    if episodic and days >= 90:
         pnl_sum = sum(m["episode_pnls"])
         if m["episodes_completed"] >= B_RETIRE_MIN_EPISODES and pnl_sum < 0:
-            v["R3_b_episodes"] = "TRIGGERED — %d episodes,累計已實現 $%.2f < 0" % (
+            v["R3_episodes"] = "TRIGGERED — %d episodes,累計已實現 $%.2f < 0" % (
                 m["episodes_completed"], pnl_sum)
         else:
-            v["R3_b_episodes"] = "ok(%d episodes,累計已實現 $%.2f)" % (
+            v["R3_episodes"] = "ok(%d episodes,累計已實現 $%.2f)" % (
                 m["episodes_completed"], pnl_sum)
+    if is_funding and days >= 180:
+        ff = m.get("fill_funnel") or {}
+        placed, rate = ff.get("placed", 0), ff.get("fill_rate_pct")
+        if placed >= FUNDING_RETIRE_MIN_PLACED and rate is not None \
+                and rate <= FUNDING_RETIRE_FILLRATE_PCT:
+            v["R5c_fillrate"] = ("TRIGGERED — %d 張掛單成交率 %.1f%% ≤ %.0f%%:"
+                                 "執行假說被前向證據答「否」— 退役並記錄結論"
+                                 % (placed, rate, FUNDING_RETIRE_FILLRATE_PCT))
+        else:
+            v["R5c_fillrate"] = "ok(%d 張掛單,成交率 %s)" % (
+                placed, "%.1f%%" % rate if rate is not None else "N/A")
     if days < ESCALATE_MIN_DAYS:
         v["escalate"] = "冇資格 — 升級要 ≥90日(E1)"
         return v
@@ -206,7 +245,7 @@ def verdict(sid, m):
     ctrl = m["control_return_pct"]
     checks.append(("E3", ctrl is not None and m["return_pct"] > ctrl,
                    "vs control %.2f%%" % ctrl if ctrl is not None else "control N/A"))
-    if is_b:
+    if episodic:
         checks.append(("E4", m["episodes_completed"] >= B_ESCALATE_MIN_EPISODES,
                        "%d/%d episodes" % (m["episodes_completed"], B_ESCALATE_MIN_EPISODES)))
     db = m["drop_best_return_pct"]
@@ -233,6 +272,12 @@ def backtest_reference_section(lab_dir, results):
     for r in results:
         sid = r["strategy_id"]
         days = r.get("forward_days")
+        if (r.get("params") or {}).get("kind") == "funding_limit":
+            lines.append("- %s:**N/A — by design**(呢個候選嘅核心變數係成交/唔成交,"
+                         "backtest 模擬唔到;參照 spec §0 嘅三行成本括號:taker −12.6%% / "
+                         "maker假設100%%成交 +9.3%% / 零成本 +13.1%%,前向數字落喺邊度就係答案)"
+                         % sid)
+            continue
         strat = (ref.get("strategies") or {}).get(sid)
         if not strat or days is None:
             lines.append("- %s:參考檔冇呢個策略 — N/A" % sid)
@@ -281,9 +326,11 @@ def render_markdown(review):
         if r.get("status") == "no_equity_snapshots":
             L += ["", "冇 equity 快照 — 冇嘢可報。", ""]
             continue
+        ff = r.get("fill_funnel")
         L += ["",
               "| 指標 | 數值 |", "|---|---|",
-              "| as of | %s(前向 %.1f 日) |" % (r["as_of"], r["forward_days"]),
+              "| as of | %s(前向 %.1f 日,由該帳戶自己嘅 activation 起計) |"
+              % (r["as_of"], r["forward_days"]),
               "| NAV | $%s(淨回報 %.2f%%) |" % (f"{r['nav']:,.2f}", r["return_pct"]),
               "| 最大回撤(小時NAV) | %.2f%% |" % r["mdd_pct"],
               "| 已完成 episodes / 訂單 | %d / %d%s |" % (
@@ -304,13 +351,22 @@ def render_markdown(review):
               "| Date-matched 控制組回報 | %s |" % (
                   "N/A" if r["control_return_pct"] is None else "%.2f%%" % r["control_return_pct"]),
               "| 機會決策統計 | %s |" % (json.dumps(r["opportunity_decisions"], ensure_ascii=False)
-                                          or "{}"),
-              "", "**審裁(凍結規則)**", ""]
+                                          or "{}")]
+        if ff is not None:
+            L.append("| 成交漏斗(候選C存在嘅意義) | 掛 %d / 成交 %d / 過期 %d / 取消 %d"
+                     " · 成交率 %s · 掛單→成交中位 %s |"
+                     % (ff["placed"], ff["filled"], ff["expired"], ff["cancelled"],
+                        "%.1f%%" % ff["fill_rate_pct"] if ff["fill_rate_pct"] is not None
+                        else "N/A(未有掛單)",
+                        "%d 分鐘" % ff["median_place_to_fill_min"]
+                        if ff["median_place_to_fill_min"] is not None else "N/A"))
+        L += ["", "**審裁(凍結規則)**", ""]
         for k, txt in r["verdict"].items():
             L.append("- `%s`:%s" % (k, txt))
         L.append("")
     L += ["## Backtest 參考分佈對照", "", backtest_reference_section(review["lab_dir"], r0), "",
-          "> 紙上成交、冇 broker;兩個候選都係事後、樣本薄嘅研究線索,唔係已驗證系統。"]
+          "> 紙上成交、冇 broker;A/B 係事後、樣本薄嘅研究線索,C 係執行假說測試"
+          "(測限價單成交率,唔係測訊號)— 三個都唔係已驗證系統。"]
     return "\n".join(L)
 
 

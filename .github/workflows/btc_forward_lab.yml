@@ -1,13 +1,17 @@
 name: BTC Forward Lab (Paper)
 
 # ------------------------------------------------------------------------------
-# 前向紙上實驗室 — 兩個「未驗證」研究候選,各自獨立 $100,000 紙上帳戶:
-#   A. sma_1d_30d_v25_v1        小時 SMA24/720 趨勢 + 25% vol target
-#   B. rvol2_breakout24h_v25_v1 24 小時高位放量突破,持倉固定 24 小時
+# 前向紙上實驗室 — 三個「未驗證」研究候選,各自獨立 $100,000 紙上帳戶:
+#   A. sma_1d_30d_v25_v1           小時 SMA24/720 趨勢 + 25% vol target
+#   B. rvol2_breakout24h_v25_v1    24 小時高位放量突破,持倉固定 24 小時
+#   C. funding_z168_limit_entry_v1 資金費率極端限價入市(執行假說測試:
+#      訊號嚟自 Kraken 資金費率 z-score,入市掛限價單等 K 線低位掂價先算
+#      成交;2026-09-21 後加,自己獨立紀元,規格喺數據出現前已凍結)
 # 基準 bot (btc_autotrade.py) 完全唔郁 — 佢照舊每日 00:15 行一次。
 #
-# 純模擬:冇 broker、冇真單。兩個候選都係事後揀出嚟、樣本薄嘅研究線索,
-# 唔係已驗證系統;呢個 lab 係收集前向證據,唔係「證明咗先擺上嚟」。
+# 純模擬:冇 broker、冇真單。A/B 係事後揀出嚟、樣本薄嘅研究線索;C 測嘅係
+# 「限價單實際接唔接到貨」,唔係已驗證系統;呢個 lab 係收集前向證據,
+# 唔係「證明咗先擺上嚟」。
 #
 # 排程係每小時第 7 分鐘。GitHub schedule 唔保證準時 —— 所以引擎用「實際
 # 觀察時間」做賬,遲到嘅 run 只會處理最新一支完成 K 線;超過 20 分鐘嘅
@@ -30,7 +34,12 @@ on:
   push:
     paths:
       - 'btc_forward_lab.py'
+      - 'btc_funding_signal.py'
+      - 'btc_basis.py'
+      - 'btc_lab_review.py'
       - 'tests/test_btc_forward_lab.py'
+      - 'tests/test_btc_funding_candidate.py'
+      - 'tests/test_btc_lab_review.py'
       - '.github/workflows/btc_forward_lab.yml'
 
 permissions:
