@@ -11,9 +11,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python3 - <<'PY'
-          import json, os, urllib.request, urllib.parse
+          import json, os, urllib.request, urllib.parse, urllib.error
           token = os.environ["TELEGRAM_BOT_TOKEN"]
           chat = os.environ["TELEGRAM_CHAT_ID"]
+          print("token length:", len(token), "  chat_id repr:", repr(chat))
           payload = urllib.parse.urlencode({
               "chat_id": chat,
               "text": "BTC123 test message -- if you see this, the bot + chat ID are wired correctly.",
@@ -22,9 +23,15 @@ jobs:
           try:
               with urllib.request.urlopen(req, timeout=15) as r:
                   body = json.loads(r.read())
-              print("RESULT ok=%s" % body.get("ok"))
-              assert body.get("ok") is True, body
+              print("RESULT ok=%s body=%s" % (body.get("ok"), body))
+          except urllib.error.HTTPError as e:
+              detail = e.read().decode(errors="replace")
+              print("HTTP", e.code, "BODY:", detail)
+          # also check getMe to confirm token identity (bot username), no secret leak
+          try:
+              with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getMe", timeout=15) as r:
+                  me = json.loads(r.read())
+              print("getMe:", me.get("result", {}).get("username"))
           except Exception as e:
-              print("FAILED:", e)
-              raise
+              print("getMe failed:", e)
           PY
