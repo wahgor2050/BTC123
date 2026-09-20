@@ -1,0 +1,30 @@
+name: Test Telegram (one-off)
+on:
+  workflow_dispatch: {}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send test message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.parse
+          token = os.environ["TELEGRAM_BOT_TOKEN"]
+          chat = os.environ["TELEGRAM_CHAT_ID"]
+          payload = urllib.parse.urlencode({
+              "chat_id": chat,
+              "text": "BTC123 test message -- if you see this, the bot + chat ID are wired correctly.",
+          }).encode()
+          req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=payload)
+          try:
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  body = json.loads(r.read())
+              print("RESULT ok=%s" % body.get("ok"))
+              assert body.get("ok") is True, body
+          except Exception as e:
+              print("FAILED:", e)
+              raise
+          PY
