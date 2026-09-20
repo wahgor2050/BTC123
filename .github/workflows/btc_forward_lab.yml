@@ -1,0 +1,110 @@
+name: BTC Forward Lab (Paper)
+
+# ------------------------------------------------------------------------------
+# 前向紙上實驗室 — 兩個「未驗證」研究候選,各自獨立 $100,000 紙上帳戶:
+#   A. sma_1d_30d_v25_v1        小時 SMA24/720 趨勢 + 25% vol target
+#   B. rvol2_breakout24h_v25_v1 24 小時高位放量突破,持倉固定 24 小時
+# 基準 bot (btc_autotrade.py) 完全唔郁 — 佢照舊每日 00:15 行一次。
+#
+# 純模擬:冇 broker、冇真單。兩個候選都係事後揀出嚟、樣本薄嘅研究線索,
+# 唔係已驗證系統;呢個 lab 係收集前向證據,唔係「證明咗先擺上嚟」。
+#
+# 排程係每小時第 7 分鐘。GitHub schedule 唔保證準時 —— 所以引擎用「實際
+# 觀察時間」做賬,遲到嘅 run 只會處理最新一支完成 K 線;超過 20 分鐘嘅
+# 入市機會記做 missed,唔會用歷史價補做。到期平倉(candidate B 的 24h)
+# 就算遲都會用新鮮報價執行。
+# ------------------------------------------------------------------------------
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+    inputs:
+      pause:
+        description: '暫停呢個策略嘅新開倉 (strategy id,例如 rvol2_breakout24h_v25_v1);到期平倉/快照照行,歷史唔會刪'
+        type: string
+        default: ''
+      resume:
+        description: '恢復呢個策略嘅新開倉 (strategy id)'
+        type: string
+        default: ''
+  push:
+    paths:
+      - 'btc_forward_lab.py'
+      - 'tests/test_btc_forward_lab.py'
+      - '.github/workflows/btc_forward_lab.yml'
+
+permissions:
+  contents: write
+
+# 同 baseline 共用一個 group:兩個 workflow 都 commit 落 main,序列化最穩陣。
+# (push 保護唔靠呢度 —— commit step 內有 rebase-retry。)
+concurrency:
+  group: btc-autotrade
+  cancel-in-progress: false
+
+jobs:
+  lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          # 標準庫 only,唔使裝 package
+
+      - name: Run offline tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Dry run against the live feed (code pushes only)
+        if: github.event_name == 'push'
+        run: python btc_forward_lab.py --dry-run
+
+      - name: Pause / resume a strategy (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.pause != '' || github.event.inputs.resume != '')
+        run: |
+          if [ -n "${{ github.event.inputs.pause }}" ]; then
+            python btc_forward_lab.py --pause "${{ github.event.inputs.pause }}"
+          fi
+          if [ -n "${{ github.event.inputs.resume }}" ]; then
+            python btc_forward_lab.py --resume "${{ github.event.inputs.resume }}"
+          fi
+
+      - name: Run the forward lab on live market data
+        if: github.event_name != 'push' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.pause != '' || github.event.inputs.resume != ''))
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python btc_forward_lab.py
+
+      - name: Commit lab state, ledgers and snapshots together
+        if: github.event_name != 'push'
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add btc_demo/lab/
+          if git diff --cached --quiet; then
+            echo "No lab change this run."
+            exit 0
+          fi
+          git commit -m "🧪 Forward lab update ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+          # baseline workflow 可能同時想 push;rebase 完再試,唔准 force
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed."
+              exit 0
+            fi
+            echo "Push failed (attempt $i), rebasing and retrying..."
+            sleep $((2 ** i))
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          done
+          echo "::error::Could not push the forward-lab update after 5 attempts."
+          exit 1
+
+      - name: Job summary
+        if: always()
+        run: python btc_forward_lab.py --summary >> "$GITHUB_STEP_SUMMARY"

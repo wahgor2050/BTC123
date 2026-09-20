@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC Forward Lab — 前向紙盤</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#131722; --panel2:#1a1f2e; --line:#262b3a;
+    --text:#d6dbe6; --muted:#7d879c; --up:#26a69a; --down:#ef5350;
+    --accent:#4c9ffe; --warn:#f0b90b;
+    --c-base:#f0b90b; --c-sma:#4c9ffe; --c-rvol:#26a69a; --c-btc:#8a93a8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",sans-serif;}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
+         flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+  h1{font-size:17px;margin:0}
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;
+         font-weight:700;letter-spacing:.6px;background:rgba(240,185,11,.14);
+         color:var(--warn);border:1px solid rgba(240,185,11,.35)}
+  .badge.red{background:rgba(239,83,80,.12);color:var(--down);border-color:rgba(239,83,80,.4)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.7}
+  main{padding:18px 22px 60px;max-width:1280px;margin:0 auto}
+  .cols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card h3{margin:0 0 4px;font-size:13px;display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:3.5px 0;
+      font-variant-numeric:tabular-nums;border-bottom:1px solid rgba(38,43,58,.45)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--muted)}
+  .pos{color:var(--up)} .neg{color:var(--down)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+          padding:16px;margin-bottom:16px}
+  section h2{font-size:13px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 10px;font-size:12px}
+  .legend label{display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none}
+  svg{width:100%;display:block}
+  .chartwrap{position:relative}
+  .tip{position:absolute;pointer-events:none;background:#0b0e14ee;border:1px solid var(--line);
+       border-radius:8px;padding:8px 10px;font-size:11.5px;line-height:1.6;display:none;
+       font-variant-numeric:tabular-nums;max-width:280px;z-index:5}
+  table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+  th{text-align:right;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:6px 8px;border-bottom:1px solid rgba(38,43,58,.55);text-align:right}
+  td:first-child{text-align:left}
+  tbody tr:hover{background:var(--panel2)}
+  .pill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel2);color:var(--muted)}
+  .scroll{overflow-x:auto}
+  .empty{color:var(--muted);font-size:13px;padding:10px 2px}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  footer{color:var(--muted);font-size:11.5px;text-align:center;padding:0 22px 40px;line-height:1.8}
+  .livebox{font-size:12px;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🧪 BTC Forward Lab <span class="badge">研究紙盤:未驗證優勢</span>
+        <span class="badge">PAPER — 冇 broker、冇真單</span></h1>
+    <div class="muted" id="sub">載入緊…</div>
+  </div>
+  <div style="text-align:right">
+    <div class="livebox" id="livebox">—</div>
+    <div class="muted" id="statusline">—</div>
+  </div>
+</header>
+<main>
+  <div class="muted" style="margin-bottom:14px" id="honesty"></div>
+  <div class="cols" id="cards"></div>
+
+  <section>
+    <h2>累積淨回報 %(由共同開始時間重新起步;已扣所有已產生成本)</h2>
+    <div class="legend" id="legend"></div>
+    <div class="chartwrap"><div id="retchart"></div><div class="tip" id="rettip"></div></div>
+    <div class="muted">實線=伺服器已保存快照;虛線尾+空心點=即時估值(未保存,只用最後已保存倉位重新標價)。
+      基準線同兩個新帳戶執行/成本模型唔同,只做重新起步後嘅百分比比較;BTC 買入持有線只係參考,唔係及格線。</div>
+  </section>
+
+  <section>
+    <h2>回撤曲線(以已保存快照計,唔代表捕捉到每個小時內低位)</h2>
+    <div class="chartwrap"><div id="ddchart"></div><div class="tip" id="ddtip"></div></div>
+  </section>
+
+  <section>
+    <h2>成交與成本</h2>
+    <div class="scroll" id="orders"></div>
+    <div class="muted">「診斷重價」= 用研究時代固定成本模型(10bp 費 + 2bp 滑價,以 mid 計)對同一張單重新計價,
+      只係成本對照,唔係另一個策略。</div>
+  </section>
+
+  <section>
+    <h2>訊號/未成交原因(包括被拒絕、錯過同遲到觀察嘅機會)</h2>
+    <div class="scroll" id="opps"></div>
+  </section>
+
+  <section>
+    <h2>匯出</h2>
+    <div class="muted" id="exports"></div>
+  </section>
+</main>
+<footer>
+  兩個候選(SMA 1/30、RVOL 放量突破)都係事後選出、樣本薄、對成本敏感嘅研究線索 —
+  獨立審核只確認「數字計啱」,並冇確認到可靠優勢;RVOL 候選喺自己預設嘅對照測試都未過關。<br>
+  所有成交都係模擬:mid=(bid+ask)/2,買=max(ask, mid×1.0002),賣=min(bid, mid×0.9998),每邊 0.1% 費用;
+  呢啲係透明嘅紙上假設,唔係保證成交得到嘅價。<br>
+  每小時第 7 分鐘由 GitHub Actions 收集及保存;排程唔保證準時,超過 20 分鐘嘅入市機會會記做 missed,
+  唔會用歷史價補做;到期平倉遲咗都會用新鮮報價執行並記低遲到時間。網頁閂咗嘅時候,後台每小時照樣記錄;
+  瀏覽器只做顯示,永遠唔會落單。<br>
+  <a href="../index.html">← 現有基準 bot 主頁</a> · 唔係投資建議。
+</footer>
+<script>
+const $ = id => document.getElementById(id);
+const money = n => (n==null||isNaN(n)) ? "–" :
+  "$" + Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = n => (n==null||isNaN(n)) ? "–" : (n>=0?"+":"") + Number(n).toFixed(2) + "%";
+const cls = n => n>0 ? "pos" : (n<0 ? "neg" : "");
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const fmtT = ts => new Date(ts*1000).toISOString().slice(0,16).replace("T"," ")+" UTC";
+
+const SIDS = ["sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1"];
+const META = {
+  baseline:{name:"現有基準 (日線 SMA3/30)",color:"var(--c-base)",hex:"#f0b90b",dash:"6 4"},
+  sma_1d_30d_v25_v1:{name:"SMA 1/30 (候選A)",color:"var(--c-sma)",hex:"#4c9ffe",dash:""},
+  rvol2_breakout24h_v25_v1:{name:"RVOL 放量突破 (候選B)",color:"var(--c-rvol)",hex:"#26a69a",dash:""},
+  btc:{name:"BTC 買入持有 (參考)",color:"var(--c-btc)",hex:"#8a93a8",dash:"2 4"},
+};
+let D=null, live=null, show={baseline:true,sma_1d_30d_v25_v1:true,rvol2_breakout24h_v25_v1:true,btc:true};
+
+function seriesData(){
+  const out={};
+  if(D.baseline && D.baseline.available) out.baseline=D.baseline.points;
+  for(const sid of SIDS) out[sid]=(D.series[sid]||{}).returns||[];
+  if((D.btc_reference||[]).length) out.btc=D.btc_reference;
+  return out;
+}
+function liveExt(key){
+  if(!live) return null;
+  if(key==="btc" ) {
+    const a=D.btc_anchor_price; return a? (live.mid/a-1)*100 : null;
+  }
+  if(key==="baseline"){
+    const b=D.baseline;
+    if(!b||!b.available||b.cash==null||b.qty==null) return null;
+    return ((b.cash+b.qty*live.mid)/b.anchor_nav-1)*100;
+  }
+  const a=D.accounts[key]; if(!a) return null;
+  return ((a.cash+a.qty*live.mid)/D.start_cash-1)*100;
+}
+
+/* ---------- generic multi-line chart with crosshair tooltip ---------- */
+function drawLines(hostId,tipId,series,markers,height){
+  const host=$(hostId), tip=$(tipId);
+  const keys=Object.keys(series).filter(k=>show[k]!==false&&series[k]&&series[k].length);
+  const allPts=keys.flatMap(k=>series[k]);
+  if(!allPts.length){host.innerHTML='<div class="empty">仲未有已保存快照 — 第一個小時 run 之後就會出現。</div>';return;}
+  const W=1200,H=height||300,PL=8,PR=110,PT=14,PB=24;
+  const t0=Math.min(...allPts.map(p=>p[0])), t1n=Math.max(...allPts.map(p=>p[0]), live?live.ts:0);
+  let lo=Math.min(0,...allPts.map(p=>p[1])), hi=Math.max(0,...allPts.map(p=>p[1]));
+  for(const k of keys){const lv=liveExt(k); if(lv!=null){lo=Math.min(lo,lv);hi=Math.max(hi,lv);}}
+  const pad=(hi-lo)*0.1||0.5;
+  const x=t=>PL+(t-t0)/Math.max(t1n-t0,1)*(W-PL-PR);
+  const y=v=>PT+(hi+pad-v)/((hi+pad)-(lo-pad))*(H-PT-PB);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:"none",height:H});
+  for(let g=0;g<=4;g++){
+    const v=lo-pad+((hi+pad)-(lo-pad))*g/4;
+    svg.appendChild(el("line",{x1:PL,x2:W-PR,y1:y(v),y2:y(v),stroke:"#262b3a","stroke-width":1}));
+    const t=el("text",{x:W-PR+7,y:y(v)+4,fill:"#7d879c","font-size":11});
+    t.textContent=v.toFixed(2)+"%";svg.appendChild(t);
+  }
+  if(0>=lo-pad&&0<=hi+pad)
+    svg.appendChild(el("line",{x1:PL,x2:W-PR,y1:y(0),y2:y(0),stroke:"#7d879c","stroke-width":1.2,"stroke-dasharray":"5 5",opacity:.8}));
+  for(const k of keys){
+    const m=META[k], pts=series[k];
+    const dstr=pts.map(p=>`${x(p[0])},${y(p[1])}`).join(" ");
+    svg.appendChild(el("polyline",{points:dstr,fill:"none",stroke:m.hex,"stroke-width":2,
+      ...(m.dash?{"stroke-dasharray":m.dash}:{}),opacity:.95}));
+    const last=pts[pts.length-1], lv=liveExt(k);
+    if(lv!=null&&live){
+      svg.appendChild(el("line",{x1:x(last[0]),y1:y(last[1]),x2:x(live.ts),y2:y(lv),
+        stroke:m.hex,"stroke-width":1.6,"stroke-dasharray":"3 4",opacity:.7}));
+      svg.appendChild(el("circle",{cx:x(live.ts),cy:y(lv),r:4.5,fill:"none",stroke:m.hex,"stroke-width":2}));
+    }
+    const lbl=el("text",{x:W-PR+7,y:y(lv!=null?lv:last[1])+4,fill:m.hex,"font-size":11,"font-weight":700});
+    lbl.textContent=(lv!=null?pct(lv):pct(last[1]));svg.appendChild(lbl);
+  }
+  (markers||[]).forEach(mk=>{
+    if(show[mk.sid]===false)return;
+    const m=META[mk.sid];if(!m)return;
+    const py=y(mk.v==null?0:mk.v), px=x(mk.ts), buy=mk.side==="BUY";
+    const tri=el("path",{fill:buy?"#26a69a":"#ef5350",stroke:"#0b0e14","stroke-width":1,
+      d:buy?`M${px},${py+12} l5.5,9 l-11,0 z`:`M${px},${py-12} l5.5,-9 l-11,0 z`,"data-mk":mk.i});
+    svg.appendChild(tri);
+  });
+  host.innerHTML="";host.appendChild(svg);
+  // crosshair tooltip: nearest saved point per visible series
+  svg.addEventListener("mousemove",ev=>{
+    const r=svg.getBoundingClientRect();
+    const mx=(ev.clientX-r.left)/r.width*W;
+    const mt=t0+(mx-PL)/Math.max(W-PL-PR,1)*(t1n-t0);
+    const tgt=ev.target.getAttribute&&ev.target.getAttribute("data-mk");
+    let html;
+    if(tgt!=null){
+      const o=(markers||[])[+tgt].o;
+      html=`<b>${META[o.strategy].name}</b><br>${o.side} ${(+o.qty).toFixed(6)} BTC @ ${money(+o.fill_price)}`+
+        `<br>費用 ${money(+o.fee)} · 原因 ${o.reason}`+
+        `<br>訊號 ${fmtT(+o.signal_ts)}<br>成交 ${fmtT(+o.decision_ts)}`+
+        (o.lateness_sec>0?`<br>遲到 ${Math.round(o.lateness_sec/60)} 分鐘`:"");
+    }else{
+      const rows=keys.map(k=>{
+        const pts=series[k];let best=pts[0];
+        for(const p of pts)if(Math.abs(p[0]-mt)<Math.abs(best[0]-mt))best=p;
+        return `<span style="color:${META[k].hex}">●</span> ${META[k].name}: <b>${pct(best[1])}</b> <span style="color:#7d879c">(${fmtT(best[0])})</span>`;
+      });
+      html=rows.join("<br>");
+    }
+    tip.innerHTML=html;tip.style.display="block";
+    const hostR=$(hostId).getBoundingClientRect();
+    tip.style.left=Math.min(ev.clientX-hostR.left+14,hostR.width-290)+"px";
+    tip.style.top=(ev.clientY-hostR.top+12)+"px";
+  });
+  svg.addEventListener("mouseleave",()=>{tip.style.display="none";});
+}
+
+function drawAll(){
+  const s=seriesData();
+  const orders=(D.orders_recent||[]).slice().reverse();
+  const markers=orders.map((o,i)=>{
+    const pts=(D.series[o.strategy]||{}).returns||[];
+    let v=null;for(const p of pts){if(p[0]<=+o.decision_ts)v=p[1];}
+    return {sid:o.strategy,ts:+o.decision_ts,side:o.side,v:v,o:o,i:i};
+  }).filter(m=>META[m.sid]);
+  drawLines("retchart","rettip",s,markers,300);
+  const dd={};
+  for(const sid of SIDS) dd[sid]=(D.series[sid]||{}).drawdown||[];
+  drawLines("ddchart","ddtip",dd,[],180);
+}
+
+function legend(){
+  const host=$("legend");host.innerHTML="";
+  for(const k of ["baseline","sma_1d_30d_v25_v1","rvol2_breakout24h_v25_v1","btc"]){
+    const lab=document.createElement("label");
+    lab.innerHTML=`<input type="checkbox" ${show[k]?"checked":""}> <span class="dot" style="background:${META[k].hex}"></span> ${META[k].name}`;
+    lab.querySelector("input").addEventListener("change",e=>{show[k]=e.target.checked;drawAll();});
+    host.appendChild(lab);
+  }
+}
+
+function cards(){
+  const host=$("cards");host.innerHTML="";
+  const days=((Date.now()/1000-D.activation_ts)/86400);
+  // baseline card
+  const b=D.baseline||{};
+  const bLive=liveExt("baseline");
+  let bhtml;
+  if(b.available){
+    bhtml=`<div class="kv"><span class="k">重新起步後回報</span><span class="${cls((b.points.slice(-1)[0]||[0,0])[1])}">${pct((b.points.slice(-1)[0]||[0,0])[1])}</span></div>
+      <div class="kv"><span class="k">原帳戶 NAV(另計,唔直接比較)</span><span>${money(b.original_equity)} (${pct(b.original_return_pct)})</span></div>
+      <div class="kv"><span class="k">錨點</span><span>${b.anchor_time}</span></div>
+      <div class="kv"><span class="k">更新</span><span>${b.updated_utc||"–"}</span></div>`;
+  }else{
+    bhtml=`<div class="kv"><span class="k">共同起點</span><span>N/A — ${b.reason||"未有有效錨點"}</span></div>`;
+  }
+  host.appendChild(cardEl("baseline",META.baseline.name,bhtml,""));
+  for(const sid of SIDS){
+    const a=D.accounts[sid], snap=a.last_snapshot||{};
+    const nav=live? D.accounts[sid].cash+D.accounts[sid].qty*live.mid : +snap.nav;
+    const savedNav=+snap.nav;
+    const lowSample=a.episodes<20;
+    const extra = sid==="rvol2_breakout24h_v25_v1"&&a.exit_due_time?
+      `<div class="kv"><span class="k">持倉到期</span><span>${a.exit_due_time}</span></div>`:"";
+    const pend=(a.pending||[]).length?`<div class="kv"><span class="k">⚠ 未解決</span><span>${a.pending.map(p=>p.kind).join(", ")}</span></div>`:"";
+    const html=`
+      <div class="kv"><span class="k">NAV(伺服器已保存)</span><span class="${cls(savedNav-100000)}">${money(savedNav)}</span></div>
+      <div class="kv"><span class="k">NAV(即時估值,未保存)</span><span class="${cls(nav-100000)}">${live?money(nav):"–"}</span></div>
+      <div class="kv"><span class="k">淨 PnL</span><span class="${cls(savedNav-100000)}">${money(savedNav-100000)} (${pct((savedNav/100000-1)*100)})</span></div>
+      <div class="kv"><span class="k">已實現 / 未實現</span><span>${money(a.realized_pnl)} / ${money(+snap.unrealized_pnl)}</span></div>
+      <div class="kv"><span class="k">持倉</span><span>${(+a.qty).toFixed(6)} BTC(佔 ${snap.exposure_pct||0}%)</span></div>
+      <div class="kv"><span class="k">完成回合 / 落單數</span><span>${a.episodes} / ${a.order_count} ${lowSample?'<span class="pill">樣本不足</span>':""}</span></div>
+      <div class="kv"><span class="k">累計費用</span><span>${money(a.fees_cum)}</span></div>
+      ${extra}${pend}
+      <div class="kv"><span class="k">參數版本</span><span>${a.version} · ${a.param_hash}${a.paused?' · <b style="color:var(--warn)">已暫停新開倉</b>':""}</span></div>`;
+    host.appendChild(cardEl(sid,META[sid].name,html,""));
+  }
+  $("sub").textContent=`開始 ${D.activation_utc} · 觀察 ${days.toFixed(1)} 日 · 場地 ${D.venue_epoch.venue}:${D.venue_epoch.product} (${D.venue_epoch.quote_ccy}) · 入市限時 ${D.entry_deadline_sec/60} 分鐘`;
+}
+function cardEl(key,title,inner){
+  const d=document.createElement("div");d.className="card";
+  d.innerHTML=`<h3><span class="dot" style="background:${META[key].hex}"></span>${title}</h3>${inner}`;
+  return d;
+}
+
+function tables(){
+  const o=$("orders");
+  const rows=D.orders_recent||[];
+  if(!rows.length){o.innerHTML='<div class="empty">仲未有成交 — 兩個候選都要等自己嘅訊號,唔會為咗展示圖表而製造交易。</div>';}
+  else{
+    o.innerHTML=`<table><thead><tr><th>成交時間 (UTC)</th><th>策略</th><th>方向</th><th>數量</th>
+      <th>成交價</th><th>bid/ask</th><th>費用</th><th>已實現ΔPnL</th><th>診斷重價</th><th>遲到</th><th>原因</th></tr></thead><tbody>`+
+      rows.map(r=>`<tr><td>${fmtT(+r.decision_ts)}</td><td>${META[r.strategy]?META[r.strategy].name:r.strategy}</td>
+        <td class="${r.side==="BUY"?"pos":"neg"}">${r.side}</td><td>${(+r.qty).toFixed(6)}</td>
+        <td>${money(+r.fill_price)}</td><td>${money(+r.bid)} / ${money(+r.ask)}</td>
+        <td>${money(+r.fee)}</td><td class="${cls(+r.realized_pnl_delta)}">${money(+r.realized_pnl_delta)}</td>
+        <td>${money(+r.diag_fill_price)} · ${money(+r.diag_fee)}</td>
+        <td>${+r.lateness_sec>0?Math.round(r.lateness_sec/60)+"分":"—"}</td>
+        <td><span class="pill">${r.reason}</span></td></tr>`).join("")+"</tbody></table>";
+  }
+  const p=$("opps");
+  const orws=D.opportunities_recent||[];
+  if(!orws.length){p.innerHTML='<div class="empty">仲未有訊號機會記錄。</div>';}
+  else{
+    p.innerHTML=`<table><thead><tr><th>訊號 K 線 (UTC)</th><th>策略</th><th>決定</th><th>原因</th>
+      <th>RVOL</th><th>目標權重</th><th>遲到觀察</th><th>數據狀態</th></tr></thead><tbody>`+
+      orws.map(r=>`<tr><td>${r.signal_time}</td><td>${META[r.strategy]?META[r.strategy].name:r.strategy}</td>
+        <td>${r.decision}</td><td><span class="pill">${r.reason}</span></td>
+        <td>${r.rvol?(+r.rvol).toFixed(2):"–"}</td><td>${r.target_weight?(+r.target_weight).toFixed(3):"–"}</td>
+        <td>${r.observed_late==="True"?"係":"—"}</td><td>${r.data_status}</td></tr>`).join("")+"</tbody></table>";
+  }
+  const mk=(D.generated_utc||"").slice(0,7).replace("-","");
+  $("exports").innerHTML=
+    `完整原始記錄(append-only,永不刪除):
+     <a href="state.json">state.json</a> ·
+     <a href="summary.json">summary.json</a> ·
+     <a href="orders_${mk}.csv">orders_${mk}.csv</a> ·
+     <a href="opportunities_${mk}.csv">opportunities_${mk}.csv</a> ·
+     <a href="equity_${mk}.csv">equity_${mk}.csv</a> ·
+     <a href="https://github.com/wahgor2050/BTC123/tree/main/btc_demo/lab">GitHub 上全部月份檔案 →</a>`;
+}
+
+function statusline(){
+  const lr=D.last_run||{};
+  const stale = live===null;
+  $("statusline").innerHTML =
+    `伺服器記錄 ${lr.time||"–"} · 最新 K 線 ${lr.latest_bar||"–"}` +
+    (stale? ` · <span class="badge red">報價未更新</span>` : "");
+}
+
+async function pollLive(){
+  try{
+    const r=await fetch("https://www.bitstamp.net/api/v2/ticker/btcusd/",{cache:"no-store"});
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    const bid=+j.bid, ask=+j.ask;
+    if(!(bid>0&&ask>=bid))throw 0;
+    live={bid,ask,mid:(bid+ask)/2,ts:Math.floor(Date.now()/1000),ex:+j.timestamp};
+    $("livebox").innerHTML=`BTC ${money(live.mid)} <span class="muted">即時估值(未保存) · bitstamp · ${fmtT(live.ts)}</span>`;
+  }catch(e){
+    live=null;
+    $("livebox").innerHTML=`<span class="badge red">即時報價不可用</span> <span class="muted">顯示最後已保存數據</span>`;
+  }
+  statusline();cards();drawAll();
+}
+
+async function refreshCommitted(){
+  try{
+    const r=await fetch("summary.json?_="+Date.now(),{cache:"no-store"});
+    D=await r.json();
+  }catch(e){ $("sub").textContent="讀取唔到 summary.json";return; }
+  // btc anchor price for live line comes from state-level anchor recorded at activation
+  try{ const s=await fetch("state.json?_="+Date.now(),{cache:"no-store"}); const st=await s.json();
+       D.btc_anchor_price=(st.btc_anchor||{}).price||null; }catch(e){}
+  $("honesty").textContent=(D.honesty||{}).label||"";
+  statusline();legend();cards();drawAll();tables();
+}
+
+refreshCommitted();
+pollLive();
+setInterval(pollLive,12000);          // 即時估值:約 12 秒一次,同場地報價
+setInterval(refreshCommitted,5*60*1000); // 已保存狀態:5 分鐘重讀一次
+</script>
+</body>
+</html>
