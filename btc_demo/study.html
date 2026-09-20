@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC Strategy Study</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#131722; --panel2:#1a1f2e; --line:#262b3a; --line2:#323848;
+    --text:#d6dbe6; --muted:#8b93a7; --dim:#6b7488;
+    --pos:#0ca30c; --neg:#d03b3b; --warn:#fab219; --accent:#3987e5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);line-height:1.72;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:0 24px 90px}
+  header{border-bottom:1px solid var(--line);margin-bottom:34px;padding:46px 0 26px}
+  h1{margin:0 0 8px;font-size:29px;letter-spacing:-.4px;line-height:1.3}
+  .sub{color:var(--muted);font-size:13.5px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+    letter-spacing:.5px;background:rgba(250,178,25,.13);color:var(--warn);
+    border:1px solid rgba(250,178,25,.32);vertical-align:4px;margin-left:8px}
+  h2{font-size:20px;margin:48px 0 6px;letter-spacing:-.2px;scroll-margin-top:20px}
+  h2 .n{color:var(--dim);font-weight:400;margin-right:10px;font-variant-numeric:tabular-nums}
+  h3{font-size:15px;margin:30px 0 8px;color:var(--text)}
+  p{margin:12px 0;font-size:14.5px}
+  .lede{color:var(--muted);font-size:14px;margin:6px 0 20px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:18px 0;
+        font-variant-numeric:tabular-nums}
+  th{text-align:right;color:var(--muted);font-weight:600;padding:8px 9px;
+     border-bottom:1px solid var(--line2);white-space:nowrap;font-size:11px;
+     text-transform:uppercase;letter-spacing:.5px}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:8px 9px;border-bottom:1px solid rgba(38,43,58,.5)}
+  tbody tr:hover{background:var(--panel2)}
+  .pos{color:var(--pos)} .neg{color:var(--neg)} .mut{color:var(--muted)}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+       padding:16px 20px;margin:20px 0}
+  .key{border-left:3px solid var(--warn);background:rgba(250,178,25,.05);
+       padding:14px 20px;margin:22px 0;border-radius:0 8px 8px 0}
+  .key b{color:var(--warn)}
+  .wrong{border-left:3px solid var(--neg);background:rgba(208,59,59,.05);
+         padding:14px 20px;margin:22px 0;border-radius:0 8px 8px 0}
+  .wrong b{color:var(--neg)}
+  ol,ul{font-size:14.5px;padding-left:22px} li{margin:7px 0}
+  code{background:var(--panel2);padding:2px 6px;border-radius:4px;font-size:12.5px;color:var(--muted)}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 22px;
+       margin-bottom:10px;font-size:13.5px}
+  .toc a{color:var(--text);text-decoration:none;display:block;padding:3px 0}
+  .toc a:hover{color:var(--accent)}
+  .toc .n{color:var(--dim);display:inline-block;width:26px}
+  .pill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel2);color:var(--muted)}
+  footer{color:var(--dim);font-size:12px;text-align:center;padding:40px 24px 0;
+         border-top:1px solid var(--line);margin-top:56px;line-height:1.8}
+  .ladder{counter-reset:step;list-style:none;padding:0}
+  .ladder li{counter-increment:step;position:relative;padding:12px 0 12px 46px;
+             border-bottom:1px solid rgba(38,43,58,.5)}
+  .ladder li:before{content:counter(step);position:absolute;left:0;top:12px;width:28px;height:28px;
+    border-radius:50%;background:var(--panel2);border:1px solid var(--line2);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .ladder b{display:block;margin-bottom:2px}
+  .ladder span{color:var(--muted);font-size:13.5px}
+  @media(max-width:640px){.wrap{padding:0 16px 60px}h1{font-size:23px}h2{font-size:18px}
+    table{font-size:11.5px}td,th{padding:6px 5px}}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+  <h1>BTC 自動交易策略研究 <span class="badge">全程模擬</span></h1>
+  <div class="sub" id="sub"></div>
+</header>
+
+<div class="toc">
+  <a href="#obj"><span class="n">1</span>目標 — 想答咩問題</a>
+  <a href="#method"><span class="n">2</span>方法 — 數據、引擎、驗證階梯</a>
+  <a href="#find"><span class="n">3</span>發現 — 五個結果</a>
+  <a href="#analysis"><span class="n">4</span>分析 — 點解會咁</a>
+  <a href="#concl"><span class="n">5</span>結論 — 落咗咩、可以期望咩</a>
+</div>
+
+<h2 id="obj"><span class="n">1</span>目標</h2>
+<p class="lede">最初嘅要求好簡單:整個 BTC 自動交易 demo,再搵個 Sharpe 高嘅策略。</p>
+<p>但做落去,真正嘅問題變咗:</p>
+<ol>
+  <li><b>個 demo 行緊嘅策略係咪真係得?</b>(答案:唔係,四年蝕 66%)</li>
+  <li><b>點先知道一個策略係真有優勢,定係我喺一大堆組合入面揀中咗噪音?</b></li>
+</ol>
+<p>第二條先係整份研究嘅核心。任何人掃一千組參數都一定搵到「靚」嘅結果 ——
+問題係點分辨真假。</p>
+
+<h2 id="method"><span class="n">2</span>方法</h2>
+
+<h3>數據</h3>
+<div id="assets"></div>
+<p class="lede">全部 1 小時 K 線,由公開交易所 API 抓,零 API key。
+XRP 原始數據有個 <b>905 日缺口</b>(SEC 訴訟期間美國交易所下架),
+表面上完全睇唔出 —— 檢查連續性先發現,已經自動只保留最長連續段。</p>
+
+<h3>引擎</h3>
+<ul>
+  <li><b>訊號喺 K 線收市計,下一支 K 線開市價成交。</b> 有測試釘死:對第 i 支 K 線有完美預知,
+      唔可以喺第 i 支賺到 —— 一改成收市價成交就即刻失敗。</li>
+  <li>每邊收 <span id="fee"></span> bps 手續費 + <span id="slip"></span> bps 滑點。</li>
+  <li>沽空用永續合約模型,收 <span id="fund"></span>%/年資金費(長倉俾,短倉收)。唔計呢樣就係幫沽空造假。</li>
+  <li>指標必須因果 —— 用前綴重算,同一支 K 線嘅值要一樣。有測試。</li>
+</ul>
+
+<h3>驗證階梯</h3>
+<p class="lede">每一級都比上一級難呃。整份研究嘅價值就喺呢度。</p>
+<ol class="ladder">
+  <li><b>樣本內掃參數</b><span>喺全部歷史揀最好嗰組。最容易,亦都最冇意義。</span></li>
+  <li><b>Walk-forward</b><span>前一年調參數,之後半年落場,滾落去。好過上面,但每個 fold 換參數本身就係噪音。</span></li>
+  <li><b>參數高原</b><span>唔睇單一格,睇高分區有冇連成一片。單點靚 = overfit。</span></li>
+  <li><b>封存驗證</b><span>揀參數只准用截止日之前,之後嗰段一次過驗,永不回頭。</span></li>
+  <li><b>跨幣種</b><span>同一組參數要喺 8 隻獨立嘅幣度都企得住。最難造假,因為啲幣係真正獨立嘅樣本。</span></li>
+  <li><b>未見過嘅幣</b><span>喺一半幣揀,喺另一半完全冇見過嘅幣驗。跑齊全部 35 種切分,睇分布唔睇單一次。</span></li>
+</ol>
+
+<h2 id="find"><span class="n">3</span>發現</h2>
+
+<h3>發現一:原本個策略係蝕錢嘅</h3>
+<p>Demo 最初行 EMA 交叉 + RSI 濾網。四年 Sharpe <b class="neg">-0.61</b>,蝕 <b class="neg">66%</b>,
+回撤 73%,炒足 623 次。</p>
+<div class="box">
+<p style="margin:0 0 8px"><b>成本敏感度</b>(同一個策略,只改手續費):</p>
+<table style="margin:0"><tbody>
+<tr><td>零成本(發夢)</td><td style="text-align:right" class="pos">Sharpe +0.74</td></tr>
+<tr><td>3 bps</td><td style="text-align:right" class="pos">+0.46</td></tr>
+<tr><td>15 bps(我哋假設)</td><td style="text-align:right" class="neg">-0.61</td></tr>
+<tr><td>30 bps(散戶)</td><td style="text-align:right" class="neg">-1.86</td></tr>
+</tbody></table>
+</div>
+<p>佢唔係冇訊號 —— 係<b>每次交易嘅優勢細過來回成本</b>。623 次 × 0.3% ≈ 燒咗 187% 本金落手續費。</p>
+
+<h3>發現二:高頻完全唔需要</h3>
+<p>同一組參數、同一段時間長度嘅均線,淨係換 K 線大細:</p>
+<div id="candle"></div>
+<p>由 1 小時到 1 日,Sharpe 全部 1.42–1.44。<b>邊際效益喺「時間長度」,唔喺「取樣密度」。</b>
+個策略一年只做 <span id="peryear"></span> 次交易。</p>
+
+<h3>發現三:趨勢質素指標有真料,Hurst 冇</h3>
+<p class="lede">用條件前瞻回報驗(唔經策略揀選,所以冇 overfit 空間):睇「呢一刻之後 7 日賺幾多」。</p>
+<table><thead><tr><th>指標區間</th><th>樣本</th><th>平均 7 日回報</th><th>勝率</th></tr></thead><tbody>
+<tr><td>ADX 低</td><td style="text-align:right">23,489</td><td style="text-align:right">+1.87%</td><td style="text-align:right">54%</td></tr>
+<tr><td><b>ADX 高</b></td><td style="text-align:right">5,956</td><td style="text-align:right" class="pos"><b>+4.28%</b></td><td style="text-align:right" class="pos"><b>69%</b></td></tr>
+<tr><td>回歸 R² 低</td><td style="text-align:right">13,504</td><td style="text-align:right">+1.78%</td><td style="text-align:right">57%</td></tr>
+<tr><td>回歸 R² 高</td><td style="text-align:right">23,608</td><td style="text-align:right">+3.10%</td><td style="text-align:right">60%</td></tr>
+<tr><td>Hurst 低</td><td style="text-align:right">15,969</td><td style="text-align:right">+2.99%</td><td style="text-align:right">54%</td></tr>
+<tr><td>Hurst 高</td><td style="text-align:right">7,370</td><td style="text-align:right">+1.99%</td><td style="text-align:right">54%</td></tr>
+</tbody></table>
+<p><b>ADX 單調而且分得好開。Hurst 完全冇分辨力</b> —— 高嗰邊反而差過低嗰邊,已經劃走。
+另外:<b>回歸本身(OLS 斜率)冇新資訊</b>,佢基本上就係另一條移動平均線。有用嘅係「趨勢<i>質素</i>」,
+唔係將「趨勢<i>方向</i>」再算一次。</p>
+
+<h3>發現三點五:偷望一支 K 線,成績誇大 4.8 倍</h3>
+<p class="lede">呢個唔係我哋計劃入面嘅測試 —— 係諗緊「可唔可以行快一日」嗰陣意外量到嘅。</p>
+<div id="lag"></div>
+<p><b>中間嗰行先係真。</b> 第一行係用第 i 支嘅收市價做決定、然後喺第 i 支嘅<b>開市價</b>成交 ——
+即係用一個當時仲未見到嘅價去落單。條數睇落好靚:回報由 232% 變 1,986%。</p>
+<p>值得記住嘅唔係「唔好偷望」呢句廢話,而係<b>個倍數</b>。一個好隱蔽、差一格 index 嘅 bug,
+可以令你以為搵到寶。所以 <code>tests/</code> 入面有個專門捉呢樣嘢嘅陷阱測試:
+<b>對第 i 支 K 線有完美預知,唔可以喺第 i 支賺到</b> —— 引擎一改成收市價成交就即刻紅。</p>
+<p>第三行順帶答咗另一條問題:遲一日成交要俾 <b>22%</b> Calmar。即係話個策略對執行時機唔算敏感,
+但都唔係免費 —— 值得保住而家嗰個時序。</p>
+
+<h3>發現四:單幣種揀選會崩塌</h3>
+<div class="key">
+<b>呢個係整份研究最重要嘅數字。</b><br>
+喺 BTC 度揀最好嗰組參數,攞去其他 7 隻幣:<b>Calmar 1.64 → 0.18</b>。<br>
+共同窗口版本更差:<b>1.39 → −0.10</b>,直接變負數。
+</div>
+<p>而且揀嘅時候分數越高,之後跌得越犀利:</p>
+<table><thead><tr><th>喺邊隻幣揀</th><th>該幣分數</th><th>其他幣中位數</th><th>差距</th></tr></thead><tbody>
+<tr><td>SOL</td><td style="text-align:right">1.82</td><td style="text-align:right">−0.09</td><td style="text-align:right" class="neg">−1.91</td></tr>
+<tr><td>BTC</td><td style="text-align:right">1.39</td><td style="text-align:right">−0.13</td><td style="text-align:right" class="neg">−1.52</td></tr>
+<tr><td>ETH</td><td style="text-align:right">1.10</td><td style="text-align:right">0.13</td><td style="text-align:right" class="neg">−0.97</td></tr>
+<tr><td>DOGE</td><td style="text-align:right">0.84</td><td style="text-align:right">0.32</td><td style="text-align:right" class="neg">−0.52</td></tr>
+<tr><td>ADA</td><td style="text-align:right">0.32</td><td style="text-align:right">−0.18</td><td style="text-align:right" class="neg">−0.50</td></tr>
+<tr><td>LINK</td><td style="text-align:right">0.26</td><td style="text-align:right">0.29</td><td style="text-align:right" class="pos">+0.03</td></tr>
+<tr><td><b>LTC</b></td><td style="text-align:right"><b>0.17</b></td><td style="text-align:right"><b>0.38</b></td><td style="text-align:right" class="pos"><b>+0.21</b></td></tr>
+</tbody></table>
+<p>跑齊全部 35 種「3 隻幣揀 / 4 隻幣驗」切分:訓練分數中位數 0.48,未見過嘅幣中位數 0.13,
+<b>35 個入面 27 個變差</b>,衰退中位數 −0.26。</p>
+
+<h3>發現五:沽空係一份保費貴過賠償嘅保險</h3>
+<p>沽空喺熊市的確有用,但長開就有害。試過五種開關條件(慢線下斜、ADX 確認、跌穿長期均線⋯⋯),
+<b>冇一個打贏得到「唔沽空」</b>:長倉 only 中位數 0.40,最好嘅閘門 0.39,而且最差嗰隻幣仲衰過。</p>
+<div id="eras"></div>
+<p>沽空腿逐隻幣睇,賺錢嘅正正係有持續熊市嗰啲:</p>
+<div id="shortleg"></div>
+<div class="key">
+沽空腿名義上賺 <b>+6%</b>,但加入之後 BTC 十年總回報由 <b>7,982% 跌到 5,325%</b>。<br>
+原因:喺上落市蝕嗰啲錢,本來可以喺長倉度複利。<b>唯一真正有價值嘅係 2022 年</b> ——
+蝕幅由 −38% 減到 −17%。
+</div>
+
+<h3>發現六:多幣組合 —— 「鋪得闊」有用,「揀最強」冇用</h3>
+<p class="lede">做開加密貨幣嘅人最常講嘅一招係橫向動量:每日排一次名,只揸最強嗰幾隻。
+我哋開頭用 7 隻幣試,數字好靚,但 7 隻根本冇得分兩個籃驗證。今次擴到
+<span id="xs-uni"></span> 隻,先夠位做真正嘅測試。</p>
+<p>全部一齊 in-sample 跑,最好嗰組係 <b><span id="xs-cell"></span></b>,Calmar
+<b><span id="xs-cal"></span></b> —— BTC 嘅三倍幾。呢個數字我特登擺喺最前,因為佢冇意思:
+佢就係一份唔留 held-out 嘅研究會 print 出嚟嘅嘢。</p>
+<p>真正嘅測試係:將啲幣隨機劈成兩個<b>唔重疊</b>嘅籃,喺第一個籃揀參數,喺第二個籃報成績,
+重複 <span id="xs-splits"></span> 次。</p>
+<div id="xsec1"></div>
+<div class="key">
+<b>3.22 → 0.88。</b>但重點唔喺個跌幅,喺最後嗰兩行:<br>
+排名<b>贏唔到「完全唔排名」</b>。greedy 同 plateau 都只係 <b>5/<span id="xs-splits2"></span></b> 贏等權,
+中位數差距 <b>−0.03</b> 同 <b>−0.02</b>。<br>
+即係話:做嘢嗰樣係<b>趨勢過濾器 + 鋪得夠闊</b>,唔係「揀最強」。
+</div>
+<p>順帶一提,呢次連 plateau 都救唔到。之前單幣種嗰陣,plateau 明顯穩陣過 greedy;
+今次兩個一齊冚 —— 因為呢度過擬合嘅唔係參數,係<b>個籃</b>。</p>
+<p>我仲做多咗一個特別乾淨嘅測試:<b>喺 IBKR 買唔到嗰 24 隻幣度揀參數,拎去 13 隻買得到嘅度跑</b>。
+測試籃完全冇參與過選擇:</p>
+<div id="xsec2"></div>
+<p>睇落好似證明咗啲嘢。但同上面 12 個 split 擺埋一齊睇就唔可以咁讀:
+排名係擲毫,所以呢個 1.75 大機會只係「呢個籃啱啱好」。真正穩陣嗰行係第二行 ——
+<b>13 隻等權,一個參數都冇揀過,就已經 2,187% → 4,702%</b>。</p>
+<p>最後一關,亦都係唯一可以決定要唔要改上線策略嗰關:<b>封存最後兩年</b>,
+呢段期間整份研究從來冇攞嚟揀過任何嘢。唔揀參數,淨係問「等權籃係咪好過淨 BTC」:</p>
+<div id="xsec3"></div>
+<div class="key">
+<b>改唔到。</b>喺封存期,IBKR 真係買到嗰 13 隻等權 <b>0.43</b>,輸畀淨 BTC 嘅 <b>0.75</b>。<br>
+贏到嗰個係「全部 37 隻」(0.98,回撤細到 18%)—— 但入面有 24 隻喺 IBKR 買唔到,做唔到。<br>
+所以 <b>demo 維持 BTC 單幣</b>。多幣組合喺呢度記錄成一個<b>否定結果</b>,唔係一個功能。
+</div>
+
+<h3>發現七:成交量指標 —— 真係有資訊,但對 BTC 打和</h3>
+<p class="lede">加密貨幣圈成日講「跟住成交量」。試咗四種成交量閘(OBV 斜率、資金流 CMF、
+企喺 VWAP 之上、成交量高於平均),喺 <span id="vol-n"></span> 隻幣度驗。</p>
+<div id="volpanel"></div>
+<p>問題係:跌市入面任何「減少落場」嘅做法睇落都會靚。所以真正嘅測試唔係同「冇 gate」比,
+係同<b>同樣場內比例、但完全隨機開關</b>嘅閘比 —— 淨喺封存期做,每個閘隨機試 40 次:</p>
+<div id="volcontrol"></div>
+<div class="key">
+<b>成交量高於平均</b>打贏隨機中位數 <b>35/<span id="vol-n2"></span></b>,即係話呢個唔係「少咗落場」嘅假象,
+係真係有跌市資訊。<br>
+但攞去 BTC 自己度睇:呢個閘封存期 Calmar 得 <b>0.41</b>,反而輸畀「冇 gate」嘅 <b>0.54</b>。
+<b>資訊係真,但對 BTC 打和 —— 冇落。</b>
+</div>
+
+<h3>發現八:鏈上/whale 代用指標 —— 16 個訊號,中嘅數目同買彩票差唔多</h3>
+<p class="lede">試咗 <span id="oc-n"></span> 個鏈上訊號(每個兩個窗口):whale 代用嘅平均轉帳金額、
+活躍地址數、交易筆數、鏈上轉帳總額、手續費、算力、NVT。每個都同「將訊號旋轉去歷史上
+另一個時間點」嘅 null 比,打贏隨機 90% 以上先算數。</p>
+<div id="ocpick"></div>
+<div id="ocsealed"></div>
+<div class="key">
+揀參數期 <b><span id="oc-pickwin"></span>/<span id="oc-n2"></span></b> 過關,封存期
+<b><span id="oc-sealwin"></span>/<span id="oc-n3"></span></b> 過關 —— 同<b>純靠彩數預期嘅比例</b>(10%)差唔多。<br>
+更關鍵嘅係:揀參數期嗰個贏家(鏈上轉帳金額,30 日窗)喺封存期<b>唔喺</b>贏家名單度 ——
+封存期贏嘅係算力(90 日窗)同鏈上轉帳金額(<b>90 日窗</b>,唔係 30)。贏家換咗人,
+即係話揀參數期嗰次係噪音,唔係訊號。<b>16 個都冇落。</b>
+</div>
+
+<h3>發現九:因子回歸 —— 試咗 24 個係數,0 個唔似係彩數</h3>
+<p class="lede">BTC 同乜嘢一齊郁?回歸落 SPY、QQQ、黃金、長債、美元指數、3 個月息率、
+10 年孳息、<span id="fc-fedfunds-note"></span>。</p>
+<p>單週相關唔弱(SPY 0.20、QQQ 0.21),但呢啲係「解釋」唔係「預測」——
+攞嚟做未來一週嘅回歸,先睇下呢層關係穩唔穩:</p>
+<div id="fceras"></div>
+<div class="key">
+SPY beta 每兩年重估一次:<b>+1.50 → −1.80 → 0.02 → −0.53 → +2.27</b>。
+連符號都唔穩定,呢個唔係「BTC 同美股嘅關係」,係「你揀邊兩年」。
+</div>
+<p>逐個因子單獨做未來一週嘅預測(避免多因子互相抵銷),再分頭 70% / 尾 30%(封存)兩段睇:</p>
+<div id="fcsingle"></div>
+<div class="key">
+一共試咗 <b><span id="fc-ncoef"></span></b> 個係數,<b>|t| > 2 嘅有 <span id="fc-nsig"></span> 個</b>
+(純靠彩數預期會有 <span id="fc-nexp"></span> 個)。<span id="fc-nflip"></span> 個因子喺兩半樣本
+<b>符號相反</b>。<br>
+即係話:呢批因子講到 BTC <b>係乜</b>(單週會同乜齊上齊落),但講唔到 BTC <b>聽日會點</b> ——
+呢個回歸唔可以攞去買賣。<b>因子擇時,冇落。</b>
+</div>
+
+<h2 id="analysis"><span class="n">4</span>分析</h2>
+
+<h3>點解單幣種揀選會失敗</h3>
+<p>十年 BTC 聽落好多數據,但獨立樣本其實得大約 <b>十幾個市場情節</b> —— 幾個牛市、幾個熊市、幾段上落市。
+喺 1,299 組參數入面,梗會有幾組啱啱好夾到嗰十幾個情節。呢個唔係優勢,係<b>用一千個籤去抽十幾個結果</b>。</p>
+<p>加幣之所以有效,係因為佢真正增加咗<b>獨立樣本</b>,而唔係將同一條價格路徑切得更細。
+一個 1 小時 K 線嘅 BTC 序列有 87,659 個數據點,但佢哋高度相關;八隻幣就係八條真正唔同嘅路徑。</p>
+
+<div class="wrong">
+<b>我自己犯過嘅錯,連埋改正:</b>
+<ul style="margin:8px 0 0">
+<li>頭一次跨幣排名,我將「喺呢隻幣度失敗」嘅結果<b>剔走</b>先計中位數 ——
+    結果「喺 6 隻幣度爛」反而令排名上升。失敗係一個<b>結果</b>,唔係缺失數據。</li>
+<li>頭兩次 held-out 測試,訓練集全部係大贏家、測試集塞晒災難幣,
+    令「未見過嘅幣」同「本身差好多嘅幣」混淆咗。真實衰退係 −0.26,唔係我最初報嘅 −0.87。</li>
+<li>我講過「趨勢策略喺熊幣度救唔到你」—— <b>錯</b>。日線全期數據:ADA +27% vs buy &amp; hold −84%,
+    DOGE +299% vs −78%。之前個結論係基於共同窗口嘅小時線數字,以偏概全。</li>
+</ul>
+</div>
+
+<h3>高分數係 overfit 嘅證據,唔係質素嘅證據</h3>
+<p>發現四嗰張表入面,關係係<b>倒轉</b>嘅:兩個「揀出嚟最靚」嘅(SOL 1.82、BTC 1.39)崩塌得最犀利;
+兩個「最難睇」嘅(LTC 0.17、LINK 0.26)反而係唯一 travel 得到嘅。</p>
+<p>封存驗證講緊同一件事:系統自己揀嗰隻,訓練期 Calmar <b>6.43</b>,封存期實際交出 <b>0.27</b> —— 衰退 24 倍。</p>
+
+<h3>點解要用 Calmar 而唔係 Sharpe</h3>
+<p>Sharpe 可以用一個賤招造靚:<b>坐喺現金度</b>。有個版本 Sharpe 1.37 睇落好靚,
+但拆開睇 —— 1,461 日入面只有 162 日真係有倉,89% 時間貢獻零波幅,把個分母壓細咗。
+總回報只有 +130%,而基準版本有 +313%。</p>
+<p>所以揀選改用 Calmar(回報 ÷ 最大回撤)+ <b>最低持倉 20%</b> 門檻。</p>
+
+<h2 id="concl"><span class="n">5</span>結論</h2>
+
+<h3>落咗咩</h3>
+<div class="box" id="shipped"></div>
+<p><b>點解揀呢組:</b>唔係因為佢喺 BTC 度分數最高,而係因為<b>最多獨立切分同意佢</b> ——
+5 個手選分層切分入面贏咗 3 個,包括訓練集係三隻跌得最慘嘅幣嗰個。</p>
+
+<h3>BTC 成績</h3>
+<div id="btcres"></div>
+
+<h3>八隻幣成績</h3>
+<div id="perasset"></div>
+
+<h3>可以期望咩</h3>
+<ul>
+  <li><b>跨幣種中位數 Calmar 0.13–0.48。</b> 唔係 1.6。如果有人同你講佢隻 crypto 策略 Calmar 1.6,
+      合理嘅問題係「喺幾多隻幣度驗過?」</li>
+  <li><b>總回報會輸俾 buy &amp; hold。</b> 呢隻策略平均只有 <span id="expo"></span>% 時間喺場內。
+      佢係<b>用回報換回撤</b>,唔係免費午餐。</li>
+  <li><b>牛市會跑輸,跌市會蝕少啲。</b> 十年入面輸三年,但輸嗰啲年份都係細幅,
+      同期 buy &amp; hold 輸 57% 同 35%。</li>
+  <li><b>過去表現唔代表將來。</b> 呢句唔係免責聲明,係上面所有數字嘅字面意思 ——
+      封存驗證每次都話俾我哋知,揀出嚟嘅嘢都會衰退。</li>
+</ul>
+
+<h3>試過但冇落嘅</h3>
+<p>呢啲唔係「未做」,係<b>做咗、輸咗</b>。記低佢哋同記低贏嗰啲一樣重要 ——
+一份只講成功嘅回測報告,本身就係一個 overfit 嘅訊號。</p>
+<table><thead><tr><th>試過乜</th><th>結果</th><th>點解唔落</th></tr></thead><tbody>
+<tr><td>沽空(5 種開關條件)</td><td>長倉 only 0.40 / 最好嘅閘門 0.39</td>
+    <td>2022 年有用,其餘時間侵蝕複利:10 年 7,982% → 5,325%</td></tr>
+<tr><td>價格追蹤止蝕(減倉唔清倉)</td><td>未見過嘅幣 0.39,對 0.52</td>
+    <td>70 個切分只贏 32 個,靚數字係孤例</td></tr>
+<tr><td>戶口層斷路器</td><td>未見過嘅幣 0.57,對 0.52</td>
+    <td><b>呢個落咗</b> —— 70 個切分贏 48 個</td></tr>
+<tr><td>橫向動量(排名揀最強)</td><td>訓練 1.86 → 未見過嘅籃 0.88</td>
+    <td>贏唔到「完全唔排名」(5/12),排名本身冇 edge</td></tr>
+<tr><td>多幣等權籃</td><td>封存期 0.43,對淨 BTC 0.75</td>
+    <td>贏嗰個版本(37 隻,0.98)有 24 隻 IBKR 買唔到</td></tr>
+<tr><td>成交量閘(4 種)</td><td>最好嗰個對隨機 35/37,但 BTC 封存 0.41 對 0.54</td>
+    <td>有真資訊,但套落 BTC 自己度打和</td></tr>
+<tr><td>鏈上/whale 代用指標(16 個)</td><td>揀參數期 1/16、封存期 2/16 過 90% 門檻</td>
+    <td>贏家換人 —— 揀參數期嗰個喺封存期唔見咗,係噪音</td></tr>
+<tr><td>因子擇時(8 個宏觀因子)</td><td>24 個係數,0 個 |t| > 2</td>
+    <td>SPY beta 每兩年跳一次符號,關係唔穩定</td></tr>
+</tbody></table>
+
+<h3>唔好信咩</h3>
+<ol>
+  <li>任何<b>只喺一隻幣度驗過</b>嘅回測。差距可以係 1.64 → 0.18。</li>
+  <li>任何<b>只喺一個籃度驗過</b>嘅多幣策略。差距可以係 3.22 → 0.88,
+      而且贏唔到「乜都唔揀」。</li>
+  <li>任何<b>冇封存驗證</b>嘅數字。訓練期 6.43 變 0.27 係常態,唔係例外。</li>
+  <li>任何<b>只報最好一格</b>嘅參數。要睇高原,單點靚就係 overfit。</li>
+  <li>任何<b>冇扣成本</b>嘅 Sharpe。原本個策略零成本 +0.74,扣咗 15 bps 就變 −0.61。</li>
+</ol>
+
+<footer id="foot"></footer>
+</div>
+<script>
+const D = {"assets":[{"sym":"BTC","bars":87659,"days":3652,"from":"2016-09-15","to":"2026-09-14","years":10.0,"dropped":0,"bh_return":12400.0,"bh_dd":83.6},{"sym":"ETH","bars":87615,"days":3650,"from":"2016-09-15","to":"2026-09-14","years":10.0,"dropped":0,"bh_return":19560.0,"bh_dd":93.9},{"sym":"LTC","bars":86827,"days":3617,"from":"2016-09-15","to":"2026-09-14","years":10.0,"dropped":0,"bh_return":1271.0,"bh_dd":93.8},{"sym":"XRP","bars":44467,"days":1159,"from":"2023-07-13","to":"2026-09-14","years":3.2,"dropped":16629,"bh_return":101.0,"bh_dd":72.0},{"sym":"LINK","bars":63279,"days":2636,"from":"2019-06-27","to":"2026-09-14","years":7.2,"dropped":0,"bh_return":362.0,"bh_dd":90.0},{"sym":"ADA","bars":48165,"days":2006,"from":"2021-03-18","to":"2026-09-14","years":5.5,"dropped":0,"bh_return":-84.0,"bh_dd":95.3},{"sym":"DOGE","bars":46317,"days":1929,"from":"2021-06-03","to":"2026-09-14","years":5.3,"dropped":0,"bh_return":-78.0,"bh_dd":86.2},{"sym":"SOL","bars":45981,"days":1915,"from":"2021-06-17","to":"2026-09-14","years":5.2,"dropped":0,"bh_return":184.0,"bh_dd":96.3}],"total_asset_years":56.4,"per_asset":[{"sym":"BTC","calmar":1.18,"sharpe":1.44,"ret":7749.0,"dd":46.3,"exp":44.0,"trades":97,"bh_ret":12400.0,"bh_dd":83.6,"short_leg":6.0},{"sym":"ETH","calmar":1.4,"sharpe":1.39,"ret":9961.0,"dd":41.9,"exp":32.0,"trades":84,"bh_ret":19560.0,"bh_dd":93.9,"short_leg":109.0},{"sym":"LTC","calmar":0.26,"sharpe":0.58,"ret":394.0,"dd":67.5,"exp":30.0,"trades":105,"bh_ret":1271.0,"bh_dd":93.8,"short_leg":-6.0},{"sym":"XRP","calmar":0.27,"sharpe":0.48,"ret":41.0,"dd":41.7,"exp":27.0,"trades":36,"bh_ret":101.0,"bh_dd":72.0,"short_leg":-20.0},{"sym":"LINK","calmar":0.47,"sharpe":0.76,"ret":358.0,"dd":49.7,"exp":27.0,"trades":76,"bh_ret":362.0,"bh_dd":90.0,"short_leg":-1.0},{"sym":"ADA","calmar":0.09,"sharpe":0.29,"ret":27.0,"dd":50.1,"exp":23.0,"trades":55,"bh_ret":-84.0,"bh_dd":95.3,"short_leg":44.0},{"sym":"DOGE","calmar":0.84,"sharpe":0.87,"ret":299.0,"dd":35.6,"exp":23.0,"trades":50,"bh_ret":-78.0,"bh_dd":86.2,"short_leg":29.0},{"sym":"SOL","calmar":0.5,"sharpe":0.9,"ret":302.0,"dd":61.0,"exp":27.0,"trades":52,"bh_ret":184.0,"bh_dd":96.3,"short_leg":-8.0}],"btc_eras":[{"label":"2018 熊市","bh":-73.0,"long":-32.0,"ls":-30.0,"short":6.0,"bh_dd":81.0,"long_dd":32.0,"ls_dd":37.0},{"label":"2022 熊市","bh":-70.0,"long":-38.0,"ls":-17.0,"short":35.0,"bh_dd":72.0,"long_dd":40.0,"ls_dd":30.0},{"label":"封存期 2 年","bh":33.0,"long":59.0,"ls":53.0,"short":7.0,"bh_dd":53.0,"long_dd":26.0,"ls_dd":27.0},{"label":"全部 10 年","bh":12770.0,"long":7982.0,"ls":5325.0,"short":6.0,"bh_dd":84.0,"long_dd":46.0,"ls_dd":42.0}],"candle_size":[{"label":"1 小時","calmar":1.14,"sharpe":1.44,"dd":46.4,"per_year":9.7},{"label":"4 小時","calmar":1.21,"sharpe":1.42,"dd":45.1,"per_year":9.6},{"label":"12 小時","calmar":1.25,"sharpe":1.43,"dd":44.7,"per_year":9.1},{"label":"1 日","calmar":1.18,"sharpe":1.44,"dd":46.3,"per_year":9.7}],"strategy":{"name":"dual_sma_voltarget","fast":3,"slow":30,"target_vol":45,"vol_window":30,"fee_bps":10,"slip_bps":5,"funding_apr":3.26},"counts":{"strategies":25,"combos":1299,"indicators":9},"lag":{"peek":{"calmar":3.16,"sharpe":1.57,"ret":1986},"ours":{"calmar":0.66,"sharpe":0.88,"ret":232},"late":{"calmar":0.51,"sharpe":0.77,"ret":197}},"xsec":{"universe":37,"ibkr":13,"splits":12,"btc_splits":8,"insample_cell":"20 日 / 揀最強 2 隻","insample_calmar":3.22,"holdout":[{"label":"greedy 高峰(揀訓練籃最高嗰格)","train":1.86,"test":0.88,"win":5},{"label":"plateau 中心(揀最闊嗰片高原)","train":1.58,"test":0.82,"win":5},{"label":"等權 —— 完全唔排名","train":null,"test":1.04,"win":null},{"label":"淨 BTC","train":null,"test":1.02,"win":null}],"crossbasket":[{"label":"20日/top2 —— 喺 24 隻 IBKR 買唔到嘅幣揀出嚟","calmar":1.75,"sharpe":1.7,"dd":35,"ret":11873},{"label":"13 隻等權 —— 一個參數都冇揀過","calmar":1.49,"sharpe":1.53,"dd":32,"ret":4702},{"label":"淨 BTC —— 而家上線嗰個","calmar":1.02,"sharpe":1.32,"dd":36,"ret":2187}],"sealed":[{"label":"全部 37 隻等權","calmar":0.98,"sharpe":1.09,"dd":18,"ret":39,"buyable":false},{"label":"淨 BTC —— 而家上線嗰個","calmar":0.75,"sharpe":0.9,"dd":23,"ret":38,"buyable":true},{"label":"IBKR 13 隻等權","calmar":0.43,"sharpe":0.61,"dd":29,"ret":26,"buyable":true},{"label":"BTC buy & hold","calmar":0.25,"sharpe":0.5,"dd":53,"ret":28,"buyable":true}]},"volume":{"n_coins":37,"panel37":{"baseline":{"label":"冇 gate(而家個 bot)","pick":0.54,"pick_in":23,"sealed":-0.19,"sealed_in":21},"gates":[{"label":"OBV 斜率 > 0","n":"n=40,t=0.0","pick":0.56,"pick_in":17,"sealed":-0.15,"sealed_in":16},{"label":"資金流 CMF > 0","n":"n=40,t=0.05","pick":0.74,"pick_in":13,"sealed":0.05,"sealed_in":8},{"label":"企喺 VWAP 之上","n":"n=20,t=0.0","pick":0.50,"pick_in":19,"sealed":-0.11,"sealed_in":17},{"label":"成交量高於平均","n":"n=40,t=1.0","pick":0.48,"pick_in":12,"sealed":0.32,"sealed_in":11}]},"btc_only":{"baseline":{"label":"冇 gate(而家個 bot)","pick":1.25,"pick_in":42,"sealed":0.54,"sealed_in":30},"gates":[{"label":"OBV 斜率 > 0","pick":1.79,"pick_in":33,"sealed":0.44,"sealed_in":23},{"label":"資金流 CMF > 0","pick":1.73,"pick_in":34,"sealed":0.67,"sealed_in":33},{"label":"企喺 VWAP 之上","pick":1.82,"pick_in":32,"sealed":0.13,"sealed_in":6},{"label":"成交量高於平均","pick":0.70,"pick_in":18,"sealed":0.41,"sealed_in":19}]},"control":[{"label":"資金流 CMF > 0.05","inmkt":24,"real":0.05,"rand_med":-0.22,"rand_p90":0.34,"win":32},{"label":"成交量高於平均","inmkt":36,"real":0.32,"rand_med":-0.25,"rand_p90":0.14,"win":35},{"label":"OBV 斜率 > 0","inmkt":49,"real":-0.15,"rand_med":-0.24,"rand_p90":0.21,"win":25}]},"onchain":{"n_signals":16,"pick_base":{"calmar":1.25,"ret":1868,"in":42},"sealed_base":{"calmar":0.14,"ret":8,"in":46},"pick_win":1,"sealed_win":2,"pick":[{"label":"平均每筆轉帳金額 ↑(whale 代用)","w":30,"in":48,"calmar":0.69,"rmed":0.40,"rp90":0.78,"win":85},{"label":"平均每筆轉帳金額 ↑(whale 代用)","w":90,"in":47,"calmar":0.67,"rmed":0.41,"rp90":0.81,"win":85},{"label":"活躍地址數 ↑","w":30,"in":55,"calmar":0.44,"rmed":0.49,"rp90":0.86,"win":41},{"label":"活躍地址數 ↑","w":90,"in":53,"calmar":0.47,"rmed":0.51,"rp90":0.86,"win":44},{"label":"交易筆數 ↑","w":30,"in":55,"calmar":0.45,"rmed":0.48,"rp90":0.84,"win":44},{"label":"交易筆數 ↑","w":90,"in":54,"calmar":0.32,"rmed":0.52,"rp90":0.92,"win":21},{"label":"鏈上轉帳金額 ↑","w":30,"in":50,"calmar":1.03,"rmed":0.38,"rp90":0.74,"win":99},{"label":"鏈上轉帳金額 ↑","w":90,"in":49,"calmar":0.60,"rmed":0.42,"rp90":0.82,"win":71},{"label":"手續費總額 ↑","w":30,"in":43,"calmar":0.87,"rmed":0.40,"rp90":0.88,"win":89},{"label":"手續費總額 ↑","w":90,"in":42,"calmar":0.70,"rmed":0.50,"rp90":0.95,"win":74},{"label":"每筆手續費 ↑","w":30,"in":42,"calmar":0.57,"rmed":0.44,"rp90":0.90,"win":68},{"label":"每筆手續費 ↑","w":90,"in":42,"calmar":0.73,"rmed":0.50,"rp90":0.97,"win":77},{"label":"算力 ↑","w":30,"in":62,"calmar":0.52,"rmed":0.50,"rp90":0.86,"win":55},{"label":"算力 ↑","w":90,"in":74,"calmar":0.71,"rmed":0.81,"rp90":1.26,"win":35},{"label":"NVT ↓(價格相對使用量平)","w":30,"in":63,"calmar":0.74,"rmed":0.58,"rp90":0.96,"win":72},{"label":"NVT ↓(價格相對使用量平)","w":90,"in":60,"calmar":0.65,"rmed":0.56,"rp90":0.92,"win":63}],"sealed":[{"label":"平均每筆轉帳金額 ↑(whale 代用)","w":30,"in":46,"calmar":0.04,"rmed":-0.17,"rp90":0.28,"win":78},{"label":"平均每筆轉帳金額 ↑(whale 代用)","w":90,"in":40,"calmar":0.16,"rmed":-0.15,"rp90":0.30,"win":83},{"label":"活躍地址數 ↑","w":30,"in":51,"calmar":-0.11,"rmed":-0.17,"rp90":0.21,"win":61},{"label":"活躍地址數 ↑","w":90,"in":46,"calmar":0.20,"rmed":-0.17,"rp90":0.27,"win":86},{"label":"交易筆數 ↑","w":30,"in":47,"calmar":-0.36,"rmed":-0.13,"rp90":0.30,"win":14},{"label":"交易筆數 ↑","w":90,"in":44,"calmar":-0.28,"rmed":-0.08,"rp90":0.51,"win":26},{"label":"鏈上轉帳金額 ↑","w":30,"in":49,"calmar":-0.04,"rmed":-0.14,"rp90":0.37,"win":59},{"label":"鏈上轉帳金額 ↑","w":90,"in":42,"calmar":0.30,"rmed":-0.19,"rp90":0.27,"win":91},{"label":"手續費總額 ↑","w":30,"in":32,"calmar":0.03,"rmed":-0.17,"rp90":0.35,"win":72},{"label":"手續費總額 ↑","w":90,"in":28,"calmar":0.33,"rmed":-0.17,"rp90":0.40,"win":87},{"label":"每筆手續費 ↑","w":30,"in":34,"calmar":-0.07,"rmed":-0.18,"rp90":0.35,"win":64},{"label":"每筆手續費 ↑","w":90,"in":27,"calmar":0.08,"rmed":-0.20,"rp90":0.34,"win":79},{"label":"算力 ↑","w":30,"in":50,"calmar":-0.10,"rmed":-0.25,"rp90":0.20,"win":67},{"label":"算力 ↑","w":90,"in":53,"calmar":0.27,"rmed":-0.23,"rp90":0.19,"win":92},{"label":"NVT ↓(價格相對使用量平)","w":30,"in":68,"calmar":0.12,"rmed":-0.14,"rp90":0.35,"win":79},{"label":"NVT ↓(價格相對使用量平)","w":90,"in":63,"calmar":0.19,"rmed":-0.16,"rp90":0.34,"win":84}]},"factors":{"n_weeks":522,"fedfunds_fixed":true,"eras":[{"label":"2016-2017","spy":1.503,"gld":-0.788,"r2":0.167,"weeks":67},{"label":"2018-2019","spy":-1.802,"gld":1.594,"r2":0.082,"weeks":104},{"label":"2020-2021","spy":0.019,"gld":0.464,"r2":0.161,"weeks":105},{"label":"2022-2023","spy":-0.534,"gld":0.422,"r2":0.237,"weeks":104},{"label":"2024-2025","spy":2.273,"gld":0.021,"r2":0.147,"weeks":104}],"single":[{"label":"SPY 美股","beta":0.1807,"t":1.02,"t70":0.77,"t30":0.90,"flip":false},{"label":"QQQ 科技","beta":0.1515,"t":1.02,"t70":0.79,"t30":0.81,"flip":false},{"label":"GLD 黃金","beta":-0.2208,"t":-1.13,"t70":-1.56,"t30":0.53,"flip":true},{"label":"TLT 長債","beta":0.1604,"t":0.74,"t70":0.44,"t30":0.96,"flip":false},{"label":"美元指數","beta":0.3485,"t":0.75,"t70":0.72,"t30":0.12,"flip":false},{"label":"3個月息率","beta":5.9505,"t":1.02,"t70":1.21,"t30":-1.73,"flip":true},{"label":"10年孳息","beta":-3.2985,"t":-0.91,"t70":-0.74,"t30":-0.66,"flip":false},{"label":"聯邦基金利率","beta":-3.8493,"t":-0.95,"t70":-0.95,"t30":-0.18,"flip":false}],"n_coef":24,"n_sig":0,"n_exp":1.2,"n_flip":2}};
+const pct = n => (n>=0?"+":"") + Math.round(n).toLocaleString("en-US") + "%";
+const cls = n => n>0?"pos":(n<0?"neg":"");
+const S = D.strategy;
+document.getElementById("sub").textContent =
+  D.assets.length + " 隻幣 · " + D.total_asset_years + " 幣-年 · " + D.counts.strategies
+  + " 隻策略 · " + D.counts.combos.toLocaleString() + " 組參數 · 全部成交模擬,冇連任何 broker";
+document.getElementById("fee").textContent = S.fee_bps;
+document.getElementById("slip").textContent = S.slip_bps;
+document.getElementById("fund").textContent = S.funding_apr;
+
+document.getElementById("assets").innerHTML =
+  `<table><thead><tr><th>幣</th><th>1h K 線</th><th>日線</th><th>年期</th><th>期間</th><th>buy &amp; hold</th><th>回撤</th></tr></thead><tbody>`
+  + D.assets.map(a=>`<tr><td><b>${a.sym}</b></td><td style="text-align:right">${a.bars.toLocaleString()}</td>
+     <td style="text-align:right">${a.days.toLocaleString()}</td><td style="text-align:right">${a.years}</td>
+     <td style="text-align:right" class="mut">${a.from} → ${a.to}</td>
+     <td style="text-align:right" class="${cls(a.bh_return)}">${pct(a.bh_return)}</td>
+     <td style="text-align:right">−${a.bh_dd}%</td></tr>`).join("") + `</tbody></table>`;
+
+document.getElementById("candle").innerHTML =
+  `<table><thead><tr><th>K 線</th><th>Calmar</th><th>Sharpe</th><th>最大回撤</th><th>交易/年</th></tr></thead><tbody>`
+  + D.candle_size.map(c=>`<tr><td>${c.label}</td><td style="text-align:right">${c.calmar.toFixed(2)}</td>
+     <td style="text-align:right">${c.sharpe.toFixed(2)}</td><td style="text-align:right">−${c.dd}%</td>
+     <td style="text-align:right">${c.per_year}</td></tr>`).join("") + `</tbody></table>`;
+const X = D.xsec;
+const num = (v,d=2) => v===null||v===undefined ? "—" : v.toFixed(d);
+["xs-uni"].forEach(k=>document.getElementById(k).textContent = X.universe);
+document.getElementById("xs-cell").textContent = X.insample_cell;
+document.getElementById("xs-cal").textContent = X.insample_calmar.toFixed(2);
+document.getElementById("xs-splits").textContent = X.splits;
+document.getElementById("xs-splits2").textContent = X.splits;
+
+document.getElementById("xsec1").innerHTML =
+  `<table><thead><tr><th>揀法</th><th>訓練籃 Calmar</th><th>未見過嘅籃 Calmar</th><th>贏等權</th></tr></thead><tbody>`
+  + X.holdout.map(r=>`<tr><td>${r.label}</td>
+     <td style="text-align:right" class="mut">${num(r.train)}</td>
+     <td style="text-align:right"><b>${num(r.test)}</b></td>
+     <td style="text-align:right">${r.win===null?"—":r.win+"/"+X.splits}</td></tr>`).join("")
+  + `</tbody></table><p class="mut">全部數字係 ${X.splits} 個獨立切分嘅中位數。
+     「淨 BTC」只計 BTC 真係跌落測試籃嗰 ${X.btc_splits} 個切分 —— 另外嗰啲根本冇對照數。</p>`;
+
+document.getElementById("xsec2").innerHTML =
+  `<table><thead><tr><th>做法</th><th>Calmar</th><th>Sharpe</th><th>最大回撤</th><th>總回報</th></tr></thead><tbody>`
+  + X.crossbasket.map(r=>`<tr><td>${r.label}</td><td style="text-align:right">${r.calmar.toFixed(2)}</td>
+     <td style="text-align:right">${r.sharpe.toFixed(2)}</td><td style="text-align:right">−${r.dd}%</td>
+     <td style="text-align:right" class="pos">${pct(r.ret)}</td></tr>`).join("") + `</tbody></table>`;
+
+document.getElementById("xsec3").innerHTML =
+  `<table><thead><tr><th>做法</th><th>IBKR 買唔買到</th><th>Calmar</th><th>Sharpe</th><th>最大回撤</th><th>回報</th></tr></thead><tbody>`
+  + X.sealed.map(r=>`<tr><td>${r.label}</td>
+     <td style="text-align:center">${r.buyable?"✓":'<span class="mut">買唔到</span>'}</td>
+     <td style="text-align:right"><b>${r.calmar.toFixed(2)}</b></td>
+     <td style="text-align:right">${r.sharpe.toFixed(2)}</td><td style="text-align:right">−${r.dd}%</td>
+     <td style="text-align:right" class="${cls(r.ret)}">${pct(r.ret)}</td></tr>`).join("")
+  + `</tbody></table><p class="mut">封存期 = 最後兩年。呢段數據由頭到尾冇參與過任何一個決定。</p>`;
+
+document.getElementById("peryear").textContent = D.candle_size[D.candle_size.length-1].per_year;
+
+const L = D.lag || {};
+document.getElementById("lag").innerHTML =
+  `<table><thead><tr><th>成交時機</th><th>中位數 Calmar</th><th>Sharpe</th><th>中位數回報</th></tr></thead><tbody>
+   <tr style="opacity:.75"><td>偷望一支 K 線 <span class="pill">做唔到</span></td>
+     <td style="text-align:right">${L.peek.calmar.toFixed(2)}</td><td style="text-align:right">${L.peek.sharpe.toFixed(2)}</td>
+     <td style="text-align:right">${pct(L.peek.ret)}</td></tr>
+   <tr><td><b>下一支開市成交</b> <span class="pill">而家用緊</span></td>
+     <td style="text-align:right"><b>${L.ours.calmar.toFixed(2)}</b></td><td style="text-align:right"><b>${L.ours.sharpe.toFixed(2)}</b></td>
+     <td style="text-align:right"><b>${pct(L.ours.ret)}</b></td></tr>
+   <tr><td>再遲一日</td><td style="text-align:right">${L.late.calmar.toFixed(2)}</td>
+     <td style="text-align:right">${L.late.sharpe.toFixed(2)}</td><td style="text-align:right">${pct(L.late.ret)}</td></tr>
+   </tbody></table>`;
+
+document.getElementById("eras").innerHTML =
+  `<table><thead><tr><th>BTC 時期</th><th>buy &amp; hold</th><th>只做長</th><th>加沽空</th><th>沽空腿自己</th></tr></thead><tbody>`
+  + D.btc_eras.map(e=>`<tr><td>${e.label}</td>
+     <td style="text-align:right" class="${cls(e.bh)}">${pct(e.bh)}</td>
+     <td style="text-align:right" class="${cls(e.long)}"><b>${pct(e.long)}</b></td>
+     <td style="text-align:right" class="${cls(e.ls)}">${pct(e.ls)}</td>
+     <td style="text-align:right" class="${cls(e.short)}">${pct(e.short)}</td></tr>`).join("") + `</tbody></table>`;
+
+const sl = D.per_asset.slice().sort((a,b)=>b.short_leg-a.short_leg);
+document.getElementById("shortleg").innerHTML =
+  `<table><thead><tr><th>幣</th><th>沽空腿回報</th><th>該幣 buy &amp; hold</th></tr></thead><tbody>`
+  + sl.map(r=>`<tr><td><b>${r.sym}</b></td>
+     <td style="text-align:right" class="${cls(r.short_leg)}">${pct(r.short_leg)}</td>
+     <td style="text-align:right" class="${cls(r.bh_ret)}">${pct(r.bh_ret)}</td></tr>`).join("") + `</tbody></table>`;
+
+const btc = D.per_asset.find(r=>r.sym==="BTC");
+document.getElementById("expo").textContent = btc.exp;
+document.getElementById("shipped").innerHTML = `
+  <table style="margin:0"><tbody>
+  <tr><td>策略</td><td style="text-align:right"><code>dual_sma_voltarget</code></td></tr>
+  <tr><td>趨勢決定入唔入</td><td style="text-align:right">${S.fast} 日均線 &gt; ${S.slow} 日均線(日線)</td></tr>
+  <tr><td>波幅決定入幾多</td><td style="text-align:right">min(100%, ${S.target_vol}% ÷ 實際年化波幅)</td></tr>
+  <tr><td>方向</td><td style="text-align:right">只做長倉或現金,<b>永遠唔沽空</b></td></tr>
+  <tr><td>止蝕</td><td style="text-align:right">冇 —— 驗證過嘅版本就係冇</td></tr>
+  <tr><td>成交</td><td style="text-align:right">尋日收市定訊號,今日開市成交</td></tr>
+  <tr><td>頻率</td><td style="text-align:right">每日跑一次,一年約 ${D.candle_size[D.candle_size.length-1].per_year} 次交易</td></tr>
+  </tbody></table>`;
+
+document.getElementById("btcres").innerHTML =
+  `<table><thead><tr><th></th><th>策略</th><th>buy &amp; hold</th></tr></thead><tbody>
+   <tr><td>Calmar</td><td style="text-align:right"><b>${btc.calmar.toFixed(2)}</b></td><td style="text-align:right">0.74</td></tr>
+   <tr><td>Sharpe</td><td style="text-align:right"><b>${btc.sharpe.toFixed(2)}</b></td><td style="text-align:right">1.05</td></tr>
+   <tr><td>最大回撤</td><td style="text-align:right" class="pos"><b>−${btc.dd}%</b></td><td style="text-align:right" class="neg">−${btc.bh_dd}%</td></tr>
+   <tr><td>總回報</td><td style="text-align:right">${pct(btc.ret)}</td><td style="text-align:right"><b>${pct(btc.bh_ret)}</b></td></tr>
+   <tr><td>持倉時間</td><td style="text-align:right">${btc.exp}%</td><td style="text-align:right">100%</td></tr>
+   <tr><td>交易次數</td><td style="text-align:right">${btc.trades}</td><td style="text-align:right">0</td></tr>
+   </tbody></table>`;
+
+document.getElementById("perasset").innerHTML =
+  `<table><thead><tr><th>幣</th><th>Calmar</th><th>Sharpe</th><th>策略回報</th><th>buy &amp; hold</th><th>回撤</th><th>持倉%</th></tr></thead><tbody>`
+  + D.per_asset.map(r=>`<tr><td><b>${r.sym}</b></td>
+     <td style="text-align:right"><b>${r.calmar.toFixed(2)}</b></td>
+     <td style="text-align:right">${r.sharpe.toFixed(2)}</td>
+     <td style="text-align:right" class="${cls(r.ret)}">${pct(r.ret)}</td>
+     <td style="text-align:right" class="${cls(r.bh_ret)}">${pct(r.bh_ret)}</td>
+     <td style="text-align:right">−${r.dd}%</td>
+     <td style="text-align:right">${r.exp}%</td></tr>`).join("") + `</tbody></table>`;
+
+// ---- 發現七:成交量 ----
+const V = D.volume;
+document.getElementById("vol-n").textContent = V.n_coins;
+document.getElementById("vol-n2").textContent = V.n_coins;
+const volRow = (r, withRet) => `<tr><td>${r.label}${r.n?` <span class="mut">(${r.n})</span>`:""}</td>
+   <td style="text-align:right">${r.pick.toFixed(2)}</td><td style="text-align:right">${r.pick_in}%</td>
+   <td style="text-align:right"><b>${r.sealed.toFixed(2)}</b></td><td style="text-align:right">${r.sealed_in}%</td></tr>`;
+document.getElementById("volpanel").innerHTML =
+  `<p class="mut">${V.n_coins} 隻幣一齊做,唔淨計 BTC:</p>
+   <table><thead><tr><th>閘</th><th>揀嗰期 Calmar</th><th>場內%</th>
+     <th>封存期 Calmar</th><th>場內%</th></tr></thead><tbody>`
+  + volRow(V.panel37.baseline) + V.panel37.gates.map(r=>volRow(r)).join("")
+  + `</tbody></table>
+   <p class="mut">淨睇 BTC 自己(因為個 demo 就係做 BTC):</p>
+   <table><thead><tr><th>閘</th><th>揀嗰期 Calmar</th><th>場內%</th>
+     <th>封存期 Calmar</th><th>場內%</th></tr></thead><tbody>`
+  + volRow(V.btc_only.baseline) + V.btc_only.gates.map(r=>volRow(r)).join("")
+  + `</tbody></table>`;
+document.getElementById("volcontrol").innerHTML =
+  `<table><thead><tr><th>閘</th><th>場內%</th><th>真閘 Calmar</th>
+     <th>隨機中位</th><th>隨機 90% 位</th><th>真閘打贏隨機</th></tr></thead><tbody>`
+  + V.control.map(r=>`<tr><td>${r.label}</td><td style="text-align:right">${r.inmkt}%</td>
+     <td style="text-align:right"><b>${r.real.toFixed(2)}</b></td>
+     <td style="text-align:right" class="mut">${r.rand_med.toFixed(2)}</td>
+     <td style="text-align:right" class="mut">${r.rand_p90.toFixed(2)}</td>
+     <td style="text-align:right">${r.win}/${V.n_coins}</td></tr>`).join("")
+  + `</tbody></table><p class="mut">封存期,${V.n_coins} 隻幣,每個隨機閘試 40 次(同樣場內比例)。</p>`;
+
+// ---- 發現八:鏈上 ----
+const O = D.onchain;
+document.getElementById("oc-n").textContent = O.n_signals;
+document.getElementById("oc-n2").textContent = O.n_signals;
+document.getElementById("oc-n3").textContent = O.n_signals;
+document.getElementById("oc-pickwin").textContent = O.pick_win;
+document.getElementById("oc-sealwin").textContent = O.sealed_win;
+const ocRow = r => `<tr class="${r.win>=90?'':'mut'}"><td>${r.label}</td>
+   <td style="text-align:right">${r.w} 日</td><td style="text-align:right">${r.in}%</td>
+   <td style="text-align:right">${r.calmar.toFixed(2)}</td>
+   <td style="text-align:right">${r.rmed.toFixed(2)}</td>
+   <td style="text-align:right">${r.rp90.toFixed(2)}</td>
+   <td style="text-align:right"><b>${r.win}%</b></td></tr>`;
+document.getElementById("ocpick").innerHTML =
+  `<p class="mut">揀參數期(封存期之前)—— 基準(乜鏈上數據都唔睇):Calmar ${O.pick_base.calmar.toFixed(2)}
+   回報 ${pct(O.pick_base.ret)} 場內 ${O.pick_base.in}%</p>
+   <table><thead><tr><th>鏈上訊號</th><th>窗</th><th>場內%</th><th>Calmar</th>
+     <th>隨機中位</th><th>隨機 90%</th><th>打贏隨機</th></tr></thead><tbody>`
+  + O.pick.map(ocRow).join("") + `</tbody></table>`;
+document.getElementById("ocsealed").innerHTML =
+  `<p class="mut">封存期(最後兩年)—— 基準:Calmar ${O.sealed_base.calmar.toFixed(2)}
+   回報 ${pct(O.sealed_base.ret)} 場內 ${O.sealed_base.in}%</p>
+   <table><thead><tr><th>鏈上訊號</th><th>窗</th><th>場內%</th><th>Calmar</th>
+     <th>隨機中位</th><th>隨機 90%</th><th>打贏隨機</th></tr></thead><tbody>`
+  + O.sealed.map(ocRow).join("")
+  + `</tbody></table><p class="mut">粗體 = 打贏自己 90% 以上旋轉版本。灰色 = 未過。</p>`;
+
+// ---- 發現九:因子回歸 ----
+const F = D.factors;
+document.getElementById("fc-fedfunds-note").textContent =
+  "聯邦基金利率(FRED 真數據" + (F.fedfunds_fixed ? "" : "暫缺,用 3 個月國庫券代表") + ")";
+document.getElementById("fceras").innerHTML =
+  `<table><thead><tr><th>期間</th><th>SPY beta</th><th>GLD beta</th><th>R²</th><th>週數</th></tr></thead><tbody>`
+  + F.eras.map(e=>`<tr><td>${e.label}</td>
+     <td style="text-align:right" class="${cls(e.spy)}">${e.spy>0?"+":""}${e.spy.toFixed(2)}</td>
+     <td style="text-align:right" class="${cls(e.gld)}">${e.gld>0?"+":""}${e.gld.toFixed(2)}</td>
+     <td style="text-align:right">${e.r2.toFixed(3)}</td>
+     <td style="text-align:right">${e.weeks}</td></tr>`).join("") + `</tbody></table>`;
+document.getElementById("fcsingle").innerHTML =
+  `<table><thead><tr><th>因子</th><th>beta</th><th>t 值</th><th>頭 70% t</th>
+     <th>尾 30% t</th><th></th></tr></thead><tbody>`
+  + F.single.map(s=>`<tr><td>${s.label}</td>
+     <td style="text-align:right">${s.beta.toFixed(4)}</td>
+     <td style="text-align:right">${s.t.toFixed(2)}</td>
+     <td style="text-align:right" class="mut">${s.t70.toFixed(2)}</td>
+     <td style="text-align:right" class="mut">${s.t30.toFixed(2)}</td>
+     <td class="mut" style="white-space:nowrap">${s.flip?"← 兩半符號相反":""}</td></tr>`).join("")
+  + `</tbody></table>`;
+document.getElementById("fc-ncoef").textContent = F.n_coef;
+document.getElementById("fc-nsig").textContent = F.n_sig;
+document.getElementById("fc-nexp").textContent = F.n_exp;
+document.getElementById("fc-nflip").textContent = F.n_flip;
+
+document.getElementById("foot").innerHTML =
+  "全部成交都係模擬,冇連任何 broker,冇落過一張真單。呢個唔係投資建議。<br>"
+  + "所有數字由 <code>btc_backtest.py</code> 直接生成,冇一個係手打。";
+</script>
+</body></html>

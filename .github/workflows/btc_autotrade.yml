@@ -1,0 +1,121 @@
+name: BTC Auto-Trade (Paper Demo)
+
+# ------------------------------------------------------------------------------
+# 純模擬 (Paper Trading) 的 BTC 自動交易 Demo
+#   - 每 15 分鐘抓一次真實市場數據 (Coinbase / Kraken / Binance / Bitstamp)
+#   - 跑 EMA 交叉 + RSI 過濾 + ATR 止蝕/止賺 策略
+#   - 成交全部係假倉 (模擬帳戶)，冇連任何 broker、冇 IBKR、唔會落真單
+# ------------------------------------------------------------------------------
+on:
+  schedule:
+    # 每日一次,00:15 UTC —— 啱啱過咗日線收市。
+    #
+    # 點解由每 2 個鐘改成每日:個策略一年只做 9.7 次交易,而由 1 小時到
+    # 1 日 K 線,Sharpe 都係 1.42-1.44 —— 小時精度根本冇貢獻。
+    #
+    # 更重要係誠實性:K 線大細一定要同執行頻率夾。用小時 K 線但兩個鐘
+    # 先行一次,個引擎會喺「醒之前一兩個鐘」嘅開市價成交 —— 嗰個價你
+    # 根本到唔到。日線 + 每日行一次就啱晒:尋日收市定訊號,今日開市成交。
+    #
+    # 順帶:每月 30 分鐘 Actions + 30 次 Cloudflare build,而唔係 360。
+    - cron: '15 0 * * *'
+  workflow_dispatch:      # 手動按掣即刻行一次
+    inputs:
+      reset:
+        description: '清空模擬帳戶，由 $100,000 重新開始'
+        type: boolean
+        default: false
+      backfill:
+        description: '今次抓幾多支 K 線 (預設 200)'
+        type: string
+        default: '200'
+      test_alert:
+        description: '只 send 一個 Telegram 測試訊息就收工 (唔會交易)'
+        type: boolean
+        default: false
+  push:                   # 改咗程式就先跑測試 (唔會 commit 結果)
+    paths:
+      - 'btc_autotrade.py'
+      - 'tests/test_btc_autotrade.py'
+      - '.github/workflows/btc_autotrade.yml'
+
+permissions:
+  contents: write
+
+# 唔好同時行兩個 run，避免兩邊各自改 state.json 撞車
+concurrency:
+  group: btc-autotrade
+  cancel-in-progress: false
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          # 只用標準庫，唔使裝任何 package，所以行得好快
+
+      - name: Run offline tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Check the live market feed is reachable
+        # 改咗 code 之後跑：只係讀行情、唔會改動模擬帳戶、唔會寫任何檔案。
+        # 交易所唔通嘅話 --dry-run 自己會 exit 0 兼寫個 warning，所以呢度
+        # 唔再用 continue-on-error —— 任何非零退出都係真 bug，應該變紅。
+        # (之前用 continue-on-error 遮住咗一個 NameError 成個 run 都係綠色。)
+        if: github.event_name == 'push'
+        run: python btc_autotrade.py --dry-run
+
+      - name: Run the paper trader on live market data
+        if: github.event_name != 'push'
+        env:
+          BTC_GRANULARITY: '86400'    # 1 日一支 K 線
+          BTC_START_CASH: '100000'
+          BTC_HISTORY_BARS: '200'     # 30 日慢線要 30 支,200 支有半年餘裕補斷層
+          # Telegram 提示。兩個 secret 都冇設定就自動熄咗,fork 同本機都唔會
+          # 嘗試通知任何人。只會喺開倉/平倉/斷路器開關嗰陣出,唔係每日一封。
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ github.event.inputs.test_alert }}" = "true" ]; then
+            python btc_autotrade.py --test-alert
+            exit $?
+          fi
+          python btc_autotrade.py \
+            --backfill "${{ github.event.inputs.backfill || '200' }}" \
+            ${{ github.event.inputs.reset == 'true' && '--reset' || '' }}
+
+      - name: Commit the updated paper account
+        if: github.event_name != 'push'
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add btc_demo/
+          if git diff --cached --quiet; then
+            echo "No change this run (no new closed candle yet)."
+            exit 0
+          fi
+          git commit -m "🤖 BTC paper trade update ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+          # 同一時間可能有第二個 workflow 推緊嘢，所以 rebase 完再試
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed."
+              exit 0
+            fi
+            echo "Push failed (attempt $i), rebasing and retrying..."
+            sleep $((2 ** i))
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          done
+          echo "::error::Could not push the updated paper account after 5 attempts."
+          exit 1
+
+      - name: Job summary
+        if: always()
+        run: python btc_autotrade.py --summary >> "$GITHUB_STEP_SUMMARY"

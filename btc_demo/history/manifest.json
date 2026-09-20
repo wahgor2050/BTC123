@@ -1,0 +1,317 @@
+{
+ "AAVE@1d": {
+  "bars": 2101,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1607990400
+ },
+ "ADA": {
+  "bars": 48166,
+  "end": 1789531200,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1616083200
+ },
+ "ADA@1d": {
+  "bars": 2008,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1616025600
+ },
+ "ALGO@1d": {
+  "bars": 2589,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1565827200
+ },
+ "ATOM@1d": {
+  "bars": 2437,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1578960000
+ },
+ "AVAX@1d": {
+  "bars": 1812,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1632960000
+ },
+ "AXS@1d": {
+  "bars": 1861,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1628726400
+ },
+ "BAT@1d": {
+  "bars": 1975,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1618876800
+ },
+ "BCH@1d": {
+  "bars": 3208,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "bitstamp",
+  "start": 1512345600
+ },
+ "BTC": {
+  "bars": 87659,
+  "end": 1789520400,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1473951600
+ },
+ "BTC@1d": {
+  "bars": 3652,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "bitstamp",
+  "start": 1473984000
+ },
+ "CHZ@1d": {
+  "bars": 1917,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1623888000
+ },
+ "COMP@1d": {
+  "bars": 2276,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1592870400
+ },
+ "CRV@1d": {
+  "bars": 2001,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1616630400
+ },
+ "DASH@1d": {
+  "bars": 2556,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1568678400
+ },
+ "DOGE": {
+  "bars": 46318,
+  "end": 1789531200,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1622736000
+ },
+ "DOGE@1d": {
+  "bars": 1931,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1622678400
+ },
+ "DOT@1d": {
+  "bars": 1918,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1623801600
+ },
+ "ENJ@1d": {
+  "bars": 1163,
+  "end": 1718323200,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1617926400
+ },
+ "EOS@1d": {
+  "bars": 2438,
+  "end": 1765324800,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1554768000
+ },
+ "ETC@1d": {
+  "bars": 2961,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1533686400
+ },
+ "ETH": {
+  "bars": 87615,
+  "end": 1789524000,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1473955200
+ },
+ "ETH@1d": {
+  "bars": 3652,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1473984000
+ },
+ "FIL@1d": {
+  "bars": 2107,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1607472000
+ },
+ "GRT@1d": {
+  "bars": 2099,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1608163200
+ },
+ "HBAR@1d": {
+  "bars": 1434,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1665619200
+ },
+ "ICP@1d": {
+  "bars": 1955,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1620604800
+ },
+ "LINK": {
+  "bars": 63280,
+  "end": 1789531200,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1561651200
+ },
+ "LINK@1d": {
+  "bars": 2638,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1561593600
+ },
+ "LTC": {
+  "bars": 86827,
+  "end": 1789524000,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1473955200
+ },
+ "LTC@1d": {
+  "bars": 3652,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1473984000
+ },
+ "MANA@1d": {
+  "bars": 1975,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1618876800
+ },
+ "MKR@1d": {
+  "bars": 2044,
+  "end": 1768176000,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1591660800
+ },
+ "NEAR@1d": {
+  "bars": 1476,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1661990400
+ },
+ "SAND@1d": {
+  "bars": 1574,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1653523200
+ },
+ "SNX@1d": {
+  "bars": 2101,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1607990400
+ },
+ "SOL": {
+  "bars": 45982,
+  "end": 1789531200,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1623945600
+ },
+ "SOL@1d": {
+  "bars": 1917,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1623888000
+ },
+ "UNI@1d": {
+  "bars": 2190,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1600300800
+ },
+ "VET@1d": {
+  "bars": 1099,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1694563200
+ },
+ "XLM@1d": {
+  "bars": 2743,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1552521600
+ },
+ "XRP": {
+  "bars": 44468,
+  "end": 1789531200,
+  "requested_years": 10.0,
+  "source": "cached",
+  "start": 1551200400
+ },
+ "XRP@1d": {
+  "bars": 3561,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "bitstamp",
+  "start": 1481846400
+ },
+ "XTZ@1d": {
+  "bars": 2598,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1565049600
+ },
+ "ZEC@1d": {
+  "bars": 2108,
+  "end": 1789430400,
+  "requested_years": 10.0,
+  "source": "coinbase",
+  "start": 1607385600
+ }
+}
