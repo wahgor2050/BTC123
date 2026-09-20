@@ -1,0 +1,74 @@
+{
+  "generated_utc": "2026-09-20T15:14:54Z",
+  "source": "build_backtest_reference.py (one-time static build; regenerate only if the frozen historical data changes). Equity curves reused from the independently audited reimplementations: A=/Users/wongmingwa/projects/project_codex/btc_rsr_swing_campaign_audit_20260920/independent_reimplementation.py (data /Users/wongmingwa/projects/repos/USstockpatternV20260412/btc_demo/history/BTC_1h.csv.gz sha256=df0d6538086cbcd273b222602741a2ef4a8e258da6d3ca528ae272bcc918da33), B=/Users/wongmingwa/projects/project_codex/btc_factor_study_audit_20260920/independent_h1_reimplementation.py (data /Users/wongmingwa/projects/project_codex/btc_factor_study_20260920/LOCAL_BTC_1H_SNAPSHOT.csv.gz sha256=df0d6538086cbcd273b222602741a2ef4a8e258da6d3ca528ae272bcc918da33). Continuous 2017-01-01..2026-09-17 run per candidate; window return = eq[t+N*24]/eq[t]-1, t stepped 24 hourly bars (daily); numpy linear-interpolation percentiles; audited dev/val/test headline numbers re-verified before build.",
+  "strategies": {
+    "sma_1d_30d_v25_v1": {
+      "window_days": {
+        "30": {
+          "n_windows": 3516,
+          "return_pct_percentiles": {
+            "p5": -5.5146,
+            "p25": -2.4552,
+            "p50": -0.0621,
+            "p75": 5.7757,
+            "p95": 21.2671
+          }
+        },
+        "90": {
+          "n_windows": 3456,
+          "return_pct_percentiles": {
+            "p5": -9.6595,
+            "p25": -3.6186,
+            "p50": 3.3216,
+            "p75": 16.2976,
+            "p95": 37.5688
+          }
+        },
+        "180": {
+          "n_windows": 3366,
+          "return_pct_percentiles": {
+            "p5": -12.369,
+            "p25": -2.894,
+            "p50": 11.9889,
+            "p75": 28.6136,
+            "p95": 67.0974
+          }
+        }
+      }
+    },
+    "rvol2_breakout24h_v25_v1": {
+      "window_days": {
+        "30": {
+          "n_windows": 3516,
+          "return_pct_percentiles": {
+            "p5": -3.3801,
+            "p25": -1.1146,
+            "p50": 0.0,
+            "p75": 1.8943,
+            "p95": 7.1641
+          }
+        },
+        "90": {
+          "n_windows": 3456,
+          "return_pct_percentiles": {
+            "p5": -5.1238,
+            "p25": -2.0785,
+            "p50": 1.1216,
+            "p75": 4.0065,
+            "p95": 15.9335
+          }
+        },
+        "180": {
+          "n_windows": 3366,
+          "return_pct_percentiles": {
+            "p5": -5.8032,
+            "p25": -1.7915,
+            "p50": 1.917,
+            "p75": 8.9128,
+            "p95": 22.9108
+          }
+        }
+      }
+    }
+  }
+}

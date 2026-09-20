@@ -194,6 +194,44 @@ class TestDeterminismAndReference(unittest.TestCase):
             self.assertIn("純定位", txt)
 
 
+class TestCommittedBacktestReference(unittest.TestCase):
+    """Validates the committed static btc_demo/lab/backtest_reference.json
+    (built once by build_backtest_reference.py from the audited historical
+    equity curves; regenerated only if the frozen history ever changes)."""
+    LAB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "btc_demo", "lab")
+
+    def _load(self):
+        with open(os.path.join(self.LAB, "backtest_reference.json"),
+                  encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def test_schema_and_percentile_sanity(self):
+        ref = self._load()
+        for key in ("generated_utc", "source", "strategies"):
+            self.assertIn(key, ref)
+        with open(os.path.join(self.LAB, "state.json"), encoding="utf-8") as fh:
+            live_ids = set(json.load(fh)["accounts"])
+        self.assertEqual(set(ref["strategies"]), live_ids)
+        for sid, strat in ref["strategies"].items():
+            self.assertEqual(set(strat["window_days"]), {"30", "90", "180"},
+                             sid)
+            for nd, bucket in strat["window_days"].items():
+                self.assertGreater(bucket["n_windows"], 0, (sid, nd))
+                p = bucket["return_pct_percentiles"]
+                vals = [p[k] for k in ("p5", "p25", "p50", "p75", "p95")]
+                self.assertEqual(vals, sorted(vals), (sid, nd))
+
+    def test_consumer_renders_real_file(self):
+        ref = self._load()
+        res = [{"strategy_id": sid, "forward_days": 200.0, "return_pct": 1.0}
+               for sid in ref["strategies"]]
+        txt = rev.backtest_reference_section(self.LAB, res)
+        self.assertNotIn("未生成", txt)
+        self.assertIn("純定位", txt)
+        self.assertEqual(txt.count("前向 180 日窗口回報"), len(res))
+
+
 class TestRunHealth(unittest.TestCase):
     def test_data_weather_needs_two_consecutive_runs(self):
         st = {"accounts": {}}                    # no 'health' key: live-state compat
