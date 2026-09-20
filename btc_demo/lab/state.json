@@ -1,0 +1,104 @@
+{
+ "schema_version": 1,
+ "mode": "PAPER / FORWARD LAB \u2014 no broker connected, unverified research leads",
+ "activation_ts": 1789907009,
+ "activation_utc": "2026-09-20 12:23 UTC",
+ "venue_epoch": {
+  "venue": "bitstamp",
+  "product": "btcusd",
+  "quote_ccy": "USD",
+  "epoch_start_utc": "2026-09-20 12:23 UTC",
+  "epoch_start_ts": 1789907009
+ },
+ "entry_deadline_sec": 1200,
+ "fill_model": {
+  "fee_per_side": 0.001,
+  "min_half_spread": 0.0002,
+  "note": "buy=max(ask,mid*1.0002); sell=min(bid,mid*0.9998); paper assumption, not a guaranteed fill"
+ },
+ "btc_anchor": {
+  "ts": 1789907009,
+  "price": 80380.89499999999
+ },
+ "accounts": {
+  "sma_1d_30d_v25_v1": {
+   "strategy_id": "sma_1d_30d_v25_v1",
+   "version": "v1",
+   "params": {
+    "kind": "sma_trend",
+    "sma_fast": 24,
+    "sma_slow": 720,
+    "vol_window": 720,
+    "target_vol": 0.25,
+    "rebalance_band": 0.1
+   },
+   "param_hash": "cbc923b3bee843d3",
+   "paused": false,
+   "start_cash": 100000.0,
+   "cash": 100000.0,
+   "qty": 0.0,
+   "cost_basis": 0.0,
+   "realized_pnl": 0.0,
+   "fees_cum": 0.0,
+   "episodes": 0,
+   "order_count": 0,
+   "last_signal_ts": 1789902000,
+   "last_parent_signal_ts": 0,
+   "entry_fill_ts": null,
+   "entry_event_id": null,
+   "exit_due_ts": null,
+   "peak_nav": 100000.0,
+   "last_equity_hour": 497196,
+   "pending": [],
+   "data_status": "ok",
+   "last_entry_signal_ts": 0
+  },
+  "rvol2_breakout24h_v25_v1": {
+   "strategy_id": "rvol2_breakout24h_v25_v1",
+   "version": "v1",
+   "params": {
+    "kind": "rvol_breakout",
+    "high_lookback": 24,
+    "sma_slow": 720,
+    "vol_window": 720,
+    "target_vol": 0.25,
+    "rvol_days": 28,
+    "rvol_min": 2.0,
+    "parent_spacing_hours": 25,
+    "hold_hours": 24
+   },
+   "param_hash": "b239ee4d1af534e8",
+   "paused": false,
+   "start_cash": 100000.0,
+   "cash": 100000.0,
+   "qty": 0.0,
+   "cost_basis": 0.0,
+   "realized_pnl": 0.0,
+   "fees_cum": 0.0,
+   "episodes": 0,
+   "order_count": 0,
+   "last_signal_ts": 1789902000,
+   "last_parent_signal_ts": 0,
+   "entry_fill_ts": null,
+   "entry_event_id": null,
+   "exit_due_ts": null,
+   "peak_nav": 100000.0,
+   "last_equity_hour": 497196,
+   "pending": [],
+   "data_status": "ok",
+   "last_entry_signal_ts": 0
+  }
+ },
+ "last_run": {
+  "time": "2026-09-20 12:23 UTC",
+  "ok": true,
+  "quote_ok": true,
+  "bars": 999,
+  "latest_bar": "2026-09-20 11:00 UTC",
+  "orders": 0,
+  "opportunities": 0,
+  "activated": true,
+  "seconds": 1.18
+ },
+ "updated_utc": "2026-09-20 12:23 UTC"
+}
