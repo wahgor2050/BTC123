@@ -1,0 +1,2 @@
+ts,time,strategy,bar_ts,bar_time,settlement_ts,settlement_age_sec,rate,z,position,resting_limit_px,resting_deadline_ts,action,schema
+1789924540,2026-09-20 17:15 UTC,funding_z168_limit_entry_v1,1789920000,2026-09-20 16:00 UTC,1789920000,0,1.19933875e-05,0.2634,flat,,,,1
