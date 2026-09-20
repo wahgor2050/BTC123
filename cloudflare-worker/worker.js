@@ -10,17 +10,24 @@
  * that's a minor nuisance ceiling, not a token leak.
  */
 
-const ALLOWED_ORIGIN = "https://wahgor2050.github.io";
+// Both mirrors serve the same dashboard and both need to call this Worker.
+// A CORS allow-list must echo back the CALLER's own origin (never a fixed
+// default) -- returning a fixed origin that doesn't match the requester is
+// exactly what silently broke the button on the second mirror before this
+// fix: the Worker's HTTP call and the Telegram send both succeeded, but the
+// browser discarded the response because Access-Control-Allow-Origin didn't
+// match window.location.origin.
+const ALLOWED_ORIGINS = new Set([
+  "https://wahgor2050.github.io",
+  "https://btc123-site.pages.dev",
+]);
 const COOLDOWN_SECONDS = 20;
 const COOLDOWN_KEY = "https://btc123.internal/cooldown";
 
 function corsHeaders(origin) {
-  const allow = origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN;
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+  const headers = { "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+  if (ALLOWED_ORIGINS.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
 async function sendTelegram(env, text) {
