@@ -105,6 +105,18 @@ jobs:
           echo "::error::Could not push the forward-lab update after 5 attempts."
           exit 1
 
+      - name: Mirror btc_demo/ to Cloudflare Pages
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN not set -- skipping Cloudflare Pages mirror (GitHub Pages still updates)."
+            exit 0
+          fi
+          npx wrangler pages deploy btc_demo --project-name btc123-site --branch main --commit-dirty=true
+
       - name: Job summary
         if: always()
         run: python btc_forward_lab.py --summary >> "$GITHUB_STEP_SUMMARY"
