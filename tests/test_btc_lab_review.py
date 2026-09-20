@@ -279,7 +279,14 @@ class TestCommittedBacktestReference(unittest.TestCase):
             self.assertIn(key, ref)
         with open(os.path.join(self.LAB, "state.json"), encoding="utf-8") as fh:
             live_ids = set(json.load(fh)["accounts"])
-        self.assertEqual(set(ref["strategies"]), live_ids)
+        # Every strategy WITH a reference must actually be live -- but not
+        # every live strategy needs a reference. Candidate C
+        # (funding_z168_limit_entry_v1) has no backtest to reference against
+        # by design (it tests real limit-order fill risk, which no backtest
+        # can simulate) and was added after this reference file was built;
+        # its absence from ref["strategies"] is correct, not stale.
+        self.assertTrue(set(ref["strategies"]).issubset(live_ids),
+                         set(ref["strategies"]) - live_ids)
         for sid, strat in ref["strategies"].items():
             self.assertEqual(set(strat["window_days"]), {"30", "90", "180"},
                              sid)
