@@ -7,14 +7,22 @@ GitHub Actions minutes and git history separate from unrelated private work.
 
 - `btc_autotrade.py` — the baseline bot: daily dual-SMA(3,30) trend + 45% volatility-target
   sizing. Runs once a day (00:15 UTC). Untouched by the forward lab.
-- `btc_forward_lab.py` — the forward lab: two frozen, **unverified** research candidates run
-  forward as independent $100,000 paper accounts (activated 2026-09-20 12:23 UTC, venue
-  Bitstamp BTC/USD spot):
+- `btc_forward_lab.py` — the forward lab: three frozen, **unverified** research candidates
+  run forward as independent $100,000 paper accounts (A/B activated 2026-09-20 12:23 UTC,
+  C added 2026-09-20 16:41 UTC with its own epoch; venue Bitstamp BTC/USD spot):
   - `sma_1d_30d_v25_v1` — hourly SMA(24)>SMA(720) trend, 25% annualised vol target,
     10%-of-NAV resize band.
   - `rvol2_breakout24h_v25_v1` — 24h-high breakout above SMA(720), greedy parent schedule
     with signals ≥25h apart (gate-rejected parents still consume the cooldown),
     RVOL(28 same-UTC-hour days) ≥ 2 gate, fixed 24h hold.
+  - `funding_z168_limit_entry_v1` — **execution-hypothesis test** (spec frozen before any
+    forward data in `btc_demo/lab/funding_candidate_spec.md`): Kraken perp funding z-score
+    (168-settlement trailing window) enter ≤ −2 / exit ≥ 0, entry via a resting LIMIT buy at
+    best bid with a 4h deadline (fill = candle-low touch, 2bp maker fee; unfilled attempts
+    logged, never fabricated), exit via the same taker model as A/B. The signal is real at
+    zero cost but loses at taker cost; this account measures the actual fill rate — nothing
+    else. Uses two data sources: Bitstamp spot (fills) + Kraken Futures (signal), via
+    `btc_funding_signal.py`.
 - `btc_demo/` — baseline paper account state, trade ledger, and dashboard pages.
 - `btc_demo/lab/` — forward-lab state (`state.json`), append-only monthly archives
   (`orders_*.csv`, `opportunities_*.csv`, `equity_*.csv`), dashboard payload
