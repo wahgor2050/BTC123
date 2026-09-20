@@ -87,24 +87,73 @@
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
+  },
+  "funding_z168_limit_entry_v1": {
+   "strategy_id": "funding_z168_limit_entry_v1",
+   "version": "v1",
+   "params": {
+    "kind": "funding_limit",
+    "z_window": 168,
+    "z_enter": -2.0,
+    "z_exit": 0.0,
+    "stale_limit_sec": 21600,
+    "limit_deadline_sec": 14400,
+    "maker_fee": 0.0002,
+    "funding_venue": "kraken",
+    "funding_symbol": "PF_XBTUSD",
+    "funding_per_day": 24
+   },
+   "param_hash": "6ee4ebcb3cf446ef",
+   "paused": false,
+   "start_cash": 100000.0,
+   "cash": 100000.0,
+   "qty": 0.0,
+   "cost_basis": 0.0,
+   "realized_pnl": 0.0,
+   "fees_cum": 0.0,
+   "episodes": 0,
+   "order_count": 0,
+   "last_signal_ts": 1789916400,
+   "last_parent_signal_ts": 0,
+   "entry_fill_ts": null,
+   "entry_event_id": null,
+   "exit_due_ts": null,
+   "resting": null,
+   "exit_signal_ts": null,
+   "exit_reason": null,
+   "peak_nav": 100000.0,
+   "last_equity_hour": 497200,
+   "pending": [],
+   "data_status": "ok",
+   "last_entry_signal_ts": 0,
+   "last_z_eval_ts": 1789916400,
+   "activation_ts": 1789922468,
+   "activation_utc": "2026-09-20 16:41 UTC"
   }
  },
  "last_run": {
-  "time": "2026-09-20 16:17 UTC",
+  "time": "2026-09-20 16:41 UTC",
   "ok": true,
   "quote_ok": true,
+  "funding_ok": true,
   "bars": 999,
   "latest_bar": "2026-09-20 15:00 UTC",
   "orders": 0,
   "opportunities": 0,
   "activated": false,
-  "seconds": 1.13
+  "seconds": 1.88
  },
- "updated_utc": "2026-09-20 16:17 UTC",
+ "updated_utc": "2026-09-20 16:41 UTC",
  "health": {
   "consec": {},
   "last_alert": {},
   "current_issues": [],
-  "checked_utc": "2026-09-20 16:17 UTC"
+  "checked_utc": "2026-09-20 16:41 UTC"
+ },
+ "funding_last": {
+  "newest_settlement_ts": 1789920000,
+  "newest_settlement_utc": "2026-09-20 16:00 UTC",
+  "fetched_utc": "2026-09-20 16:41 UTC",
+  "n_settlements": 8833
  }
 }
