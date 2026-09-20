@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# wrangler local cache (never contains secrets, just account id + config; still shouldn't be committed)
+.wrangler/
