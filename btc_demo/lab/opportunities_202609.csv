@@ -1,0 +1,2 @@
+event_id,strategy,signal_ts,signal_time,observed_ts,observed_late,close,high24,sma_fast,sma_slow,sigma_ann,rvol_num,rvol_den,rvol,target_weight,cooldown_ok,gate,decision,reason,data_status,venue,schema
+sma_1d_30d_v25_v1:1789905600,sma_1d_30d_v25_v1,1789905600,2026-09-20 12:00 UTC,1789910208,False,80463.25,81913.69,80900.91083333334,78359.7469861111,0.35210025252851707,19.97138634,67.13850757,0.2974654496032313,0.7100250516853923,,,entered,trend_up_entry,ok,bitstamp:btcusd,1

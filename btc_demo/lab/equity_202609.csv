@@ -1,3 +1,5 @@
 ts,time,strategy,cash,qty,mark,mark_source,cost_basis,realized_pnl,unrealized_pnl,fees_cum,nav,exposure_pct,peak_nav,drawdown_pct,data_status,schema
 1789907010,2026-09-20 12:23 UTC,sma_1d_30d_v25_v1,100000.0,0.0,80380.89,quote_mid,0.0,0.0,0.0,0.0,100000.0,0.0,100000.0,0.0,ok,1
 1789907010,2026-09-20 12:23 UTC,rvol2_breakout24h_v25_v1,100000.0,0.0,80380.89,quote_mid,0.0,0.0,0.0,0.0,100000.0,0.0,100000.0,0.0,ok,1
+1789910208,2026-09-20 13:16 UTC,sma_1d_30d_v25_v1,28997.49,0.88080058,80514.7,quote_mid,71002.51,0.0,-85.12,70.93,99914.88,70.98,100000.0,-0.085,ok,1
+1789910208,2026-09-20 13:16 UTC,rvol2_breakout24h_v25_v1,100000.0,0.0,80514.7,quote_mid,0.0,0.0,0.0,0.0,100000.0,0.0,100000.0,0.0,ok,1
