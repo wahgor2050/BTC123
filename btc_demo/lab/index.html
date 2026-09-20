@@ -416,7 +416,7 @@ async function manualRefresh(){
   finally{ btn.classList.remove("busy");btn.textContent="🔄 即時更新報價"; }
 }
 
-const TG_WORKER_URL="https://btc123.z66hvm95g8.workers.dev";
+const TG_WORKER_URL="https://btc123-telegram-relay.z66hvm95g8.workers.dev";
 async function testTelegram(){
   // The Telegram bot token/chat id live ONLY as Cloudflare Worker secrets --
   // never in this page's source. The Worker itself holds a 20s global

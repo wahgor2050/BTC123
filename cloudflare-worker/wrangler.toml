@@ -1,7 +1,15 @@
-name = "btc123"
+name = "btc123-telegram-relay"
 main = "worker.js"
 compatibility_date = "2026-09-20"
 
 # TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set as Worker *secrets*
 # (wrangler secret put ...), never written here and never shipped to
 # the browser. This file has no credentials in it.
+#
+# Deliberately named with NO shared prefix/substring against the
+# "btc123-site" Pages project -- the original Worker named plain "btc123"
+# had its secrets silently reset at least twice, timed suspiciously close
+# to "btc123-site" Cloudflare Pages deploys from CI. Cloudflare's newer
+# unified Workers/Pages backend appears to treat similarly-prefixed
+# resources as related in some way; giving this Worker a fully distinct
+# name is the simplest way to rule that class of bug out entirely.
