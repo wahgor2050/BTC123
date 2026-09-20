@@ -98,6 +98,19 @@ CANDLE_RETRIES = 5               # bounded wait for the just-closed candle
 CANDLE_RETRY_SLEEP = 30
 ANNUAL = math.sqrt(24 * 365.25)
 
+# Run-health alerting (operational, distinct from trade alerts): serious issues
+# alert at once; data weather (feed/quote down) alerts on the 2nd consecutive
+# degraded run; each kind then repeats at most every 6 hours.
+HEALTH_MIN_REPEAT_SEC = 6 * 3600
+HEALTH_CONSEC = {"no_candles": 2, "no_quote": 2}
+HEALTH_TEXT = {
+    "no_candles": "小時K線攞唔到(連續兩個 run)— 引擎冇新訊號可處理",
+    "no_quote": "冇可用報價(連續兩個 run)— 開倉會 missed,到期平倉會延後",
+    "reconcile_fail": "賬本對唔上 NAV(RECONCILE_FAIL)— 要人手睇",
+    "exit_unresolved": "有到期平倉一直執行唔到(exit_unresolved)— 要人手睇",
+}
+WATCHDOG_STALE_SEC = 3 * 3600    # --health-check: state older than this alerts
+
 STRATEGIES = {
     "sma_1d_30d_v25_v1": {
         "kind": "sma_trend",
@@ -763,6 +776,9 @@ def build_summary(state, engine_orders_recent=None):
             "fill_model": state["fill_model"], "start_cash": START_CASH,
             "code_commit": os.environ.get("GITHUB_SHA", ""),
             "last_run": state.get("last_run", {}),
+            "health": state.get("health", {}),
+            "evaluation_protocol": {"file": "evaluation_protocol.md",
+                                    "sha256": protocol_sha256()},
             "accounts": accounts, "series": per, "btc_reference": btc_pts,
             "baseline": baseline_series(state["activation_ts"]),
             "orders_recent": orders[-60:][::-1], "opportunities_recent": opps[-80:][::-1],
@@ -777,6 +793,66 @@ def write_summary(state):
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(build_summary(state), fh, ensure_ascii=False, separators=(",", ":"))
     os.replace(tmp, SUMMARY_FILE)
+
+
+# ------------------------------------------------------------------------------
+# Run health (operational alerts, distinct from trade alerts)
+# ------------------------------------------------------------------------------
+def health_bucket(state):
+    """state['health'] with defaults — the live state predates this field."""
+    h = state.get("health")
+    if not isinstance(h, dict):
+        h = {}
+    h.setdefault("consec", {})
+    h.setdefault("last_alert", {})
+    state["health"] = h
+    return h
+
+
+def evaluate_health(state, issues, now):
+    """Update consecutive-run counters for `issues` (set of kinds) and return
+    the kinds that should alert THIS run. Serious kinds alert immediately;
+    data-weather kinds need HEALTH_CONSEC consecutive runs; every kind is then
+    rate-limited to one alert per HEALTH_MIN_REPEAT_SEC."""
+    h = health_bucket(state)
+    for kind in list(h["consec"]):
+        if kind not in issues:
+            h["consec"][kind] = 0
+    fire = []
+    for kind in sorted(issues):
+        n = h["consec"].get(kind, 0) + 1
+        h["consec"][kind] = n
+        if n < HEALTH_CONSEC.get(kind, 1):
+            continue
+        if now - h["last_alert"].get(kind, 0) >= HEALTH_MIN_REPEAT_SEC:
+            h["last_alert"][kind] = int(now)
+            fire.append(kind)
+    h["current_issues"] = sorted(issues)
+    h["checked_utc"] = iso(now)
+    return fire
+
+
+def collect_run_issues(bars, quote, engine, state):
+    issues = set()
+    if not bars:
+        issues.add("no_candles")
+    if quote is None:
+        issues.add("no_quote")
+    if engine is not None and any("RECONCILE_FAIL" in (s.get("data_status") or "")
+                                  for s in engine.snapshots):
+        issues.add("reconcile_fail")
+    if any(a.get("pending") for a in state.get("accounts", {}).values()):
+        issues.add("exit_unresolved")
+    return issues
+
+
+def protocol_sha256():
+    p = os.path.join(LAB_DIR, "evaluation_protocol.md")
+    try:
+        with open(p, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    except OSError:
+        return None
 
 
 # ------------------------------------------------------------------------------
@@ -797,6 +873,23 @@ def send_lab_alerts(alerts):
                       "%s %s %.6f BTC @ $%s\nreason: %s\n\n"
                       "Unverified research candidate; not a validated system."
                       % (side, sid, qty, f"{px:,.2f}", reason))
+
+
+def send_health_alerts(kinds, extra_lines=None):
+    """Operational health Telegram — NEVER a trade signal, never blocks."""
+    if not kinds and not extra_lines:
+        return
+    try:
+        from btc_autotrade import send_telegram, telegram_configured
+    except Exception:  # noqa: BLE001
+        return
+    lines = ["• " + HEALTH_TEXT.get(k, k) for k in kinds] + list(extra_lines or [])
+    if not telegram_configured():
+        logger.info("Health alert (Telegram not configured): %s", "; ".join(lines))
+        return
+    send_telegram("🩺 LAB HEALTH — 前向實驗室運行警報(唔係交易訊號)\n\n"
+                  + "\n".join(lines)
+                  + "\n\n交易照凍結規則行;呢個只係數據/運行健康通知。")
 
 
 # ------------------------------------------------------------------------------
@@ -838,9 +931,12 @@ def run_once():
     if not bars and quote is None:
         state["last_run"] = {"time": iso(started), "ok": False,
                              "error": "no candles and no quote"}
+        fire = evaluate_health(state, collect_run_issues(bars, quote, None, state),
+                               time.time())
         state["updated_utc"] = iso(time.time())
         save_state(state)
         write_summary(state)
+        send_health_alerts(fire)
         return 0
 
     eng = LabEngine(state, time.time(), bars, quote)
@@ -855,10 +951,13 @@ def run_once():
                          "orders": len(eng.orders), "opportunities": len(eng.opps),
                          "activated": activated,
                          "seconds": round(time.time() - started, 2)}
+    fire = evaluate_health(state, collect_run_issues(bars, quote, eng, state),
+                           time.time())
     state["updated_utc"] = iso(time.time())
     save_state(state)
     write_summary(state)
     send_lab_alerts(eng.alerts)
+    send_health_alerts(fire)
     for sid, a in state["accounts"].items():
         mark = quote["mid"] if quote else (bars[-1][4] if bars else 0)
         logger.info("[%s] NAV $%.2f | cash $%.2f | %.6f BTC | realized $%.2f | "
@@ -915,6 +1014,52 @@ def markdown_summary():
     return "\n".join(lines)
 
 
+def health_check():
+    """Read-only watchdog, meant to run from an INDEPENDENT schedule (the daily
+    baseline workflow): catches the failure mode the hourly run can't see —
+    the hourly workflow itself silently not running. Writes nothing; the daily
+    cadence is the rate limit. Always exits 0 so a watchdog bug can never take
+    down its host job."""
+    state = load_state()
+    if state is None:
+        logger.info("Watchdog: lab not activated yet — nothing to check.")
+        return 0
+    problems = []
+    now = time.time()
+    stamp = (state.get("last_run") or {}).get("time") or state.get("updated_utc")
+    try:
+        ts = datetime.strptime(stamp, "%Y-%m-%d %H:%M UTC") \
+                     .replace(tzinfo=timezone.utc).timestamp()
+        age_h = (now - ts) / 3600
+        if now - ts > WATCHDOG_STALE_SEC:
+            problems.append("• lab state 已 %.1f 小時冇更新 — hourly workflow 可能死咗"
+                            "或者被 GitHub 停咗 schedule" % age_h)
+    except Exception:  # noqa: BLE001
+        problems.append("• lab state 嘅 last_run 時間解析唔到(%r)" % stamp)
+    if not (state.get("last_run") or {}).get("ok", True):
+        problems.append("• 最後一次 run 標記為失敗:%s"
+                        % (state["last_run"].get("error") or "unknown"))
+    for sid, a in (state.get("accounts") or {}).items():
+        for p in a.get("pending") or []:
+            problems.append("• %s 未解決:%s(%s 起)"
+                            % (sid, p.get("kind"), iso(p.get("noted_ts", 0))))
+    eq_path = archive_paths(now)[2]
+    if os.path.exists(eq_path):
+        with open(eq_path, encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+        bad = [r for r in rows[-48:] if "RECONCILE_FAIL" in (r.get("data_status") or "")]
+        if bad:
+            problems.append("• 過去48個快照有 %d 個 RECONCILE_FAIL(最近 %s)"
+                            % (len(bad), bad[-1].get("time")))
+    if not problems:
+        logger.info("Watchdog: lab healthy (state age OK, no pending, no reconcile fails).")
+        return 0
+    for p in problems:
+        logger.error("Watchdog: %s", p)
+    send_health_alerts([], extra_lines=problems)
+    return 0
+
+
 def set_paused(sid, paused):
     state = load_state()
     if not state or sid not in state["accounts"]:
@@ -934,12 +1079,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="BTC forward paper lab (no broker connected)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--summary", action="store_true")
+    ap.add_argument("--health-check", action="store_true",
+                    help="read-only watchdog: alert if lab state is stale / "
+                         "pending exits / reconcile failures; writes nothing")
     ap.add_argument("--pause", metavar="STRATEGY_ID")
     ap.add_argument("--resume", metavar="STRATEGY_ID")
     args = ap.parse_args(argv)
     if args.summary:
         print(markdown_summary())
         return 0
+    if args.health_check:
+        return health_check()
     if args.dry_run:
         return dry_run()
     if args.pause:

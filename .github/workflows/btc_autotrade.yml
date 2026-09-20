@@ -92,6 +92,18 @@ jobs:
             --backfill "${{ github.event.inputs.backfill || '200' }}" \
             ${{ github.event.inputs.reset == 'true' && '--reset' || '' }}
 
+      - name: Forward-lab watchdog (read-only health check)
+        # 睇門口:hourly lab workflow 如果靜靜雞死咗(schedule 被停/一直 fail),
+        # 冇交易訊號 ≠ 冇事 —— 呢步由「另一條」每日 schedule 讀 lab state 年齡、
+        # 未解決平倉、RECONCILE_FAIL,有事就出 🩺 Telegram。唔寫任何檔案;
+        # watchdog 自己壞咗都唔准拖冧 baseline run(continue-on-error)。
+        if: github.event_name != 'push'
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python btc_forward_lab.py --health-check
+
       - name: Commit the updated paper account
         if: github.event_name != 'push'
         run: |
