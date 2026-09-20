@@ -1,0 +1,93 @@
+/**
+ * BTC123 Telegram test proxy.
+ *
+ * Holds TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID as Worker secrets (env-bound,
+ * never sent to the browser). The public page POSTs here with no
+ * credentials at all; this Worker is the only thing that ever talks to the
+ * Telegram API. A lightweight cooldown (Cache API, 20s, shared across all
+ * callers) stops the public endpoint from being hammered into a message
+ * flood -- it does not stop someone from calling it once every 20s, but
+ * that's a minor nuisance ceiling, not a token leak.
+ */
+
+const ALLOWED_ORIGIN = "https://wahgor2050.github.io";
+const COOLDOWN_SECONDS = 20;
+const COOLDOWN_KEY = "https://btc123.internal/cooldown";
+
+function corsHeaders(origin) {
+  const allow = origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+async function sendTelegram(env, text) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const body = new URLSearchParams({ chat_id: env.TELEGRAM_CHAT_ID, text });
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok && j.ok === true, description: j.description };
+}
+
+export default {
+  async fetch(request, env) {
+    const origin = request.headers.get("Origin") || "";
+    const headers = corsHeaders(origin);
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers });
+    }
+    if (request.method !== "POST") {
+      return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
+        status: 405,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+    if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Worker secrets not configured" }),
+        { status: 500, headers: { ...headers, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Global cooldown via the Cache API -- cheap abuse guard, no external state needed.
+    const cache = caches.default;
+    const cooldownReq = new Request(COOLDOWN_KEY);
+    const cached = await cache.match(cooldownReq);
+    if (cached) {
+      return new Response(
+        JSON.stringify({ ok: false, error: `cooldown active, wait ${COOLDOWN_SECONDS}s between tests` }),
+        { status: 429, headers: { ...headers, "Content-Type": "application/json" } }
+      );
+    }
+    await cache.put(
+      cooldownReq,
+      new Response("1", { headers: { "Cache-Control": `max-age=${COOLDOWN_SECONDS}` } })
+    );
+
+    const now = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
+    const text =
+      `\u{1F9EA} BTC123 connectivity test (via Cloudflare Worker) -- ${now}\n` +
+      `If you see this, the one-click browser button works.\n` +
+      `Paper trading only, no broker, no real orders.`;
+
+    try {
+      const result = await sendTelegram(env, text);
+      return new Response(JSON.stringify(result), {
+        status: result.ok ? 200 : 502,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: "request failed" }), {
+        status: 502,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+  },
+};

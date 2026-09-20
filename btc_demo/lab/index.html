@@ -74,8 +74,7 @@
     <div class="muted" id="statusline">—</div>
     <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button id="refreshBtn" class="btnlab" onclick="manualRefresh()">🔄 即時更新報價</button>
-      <a class="btnlab" href="https://github.com/wahgor2050/BTC123/actions/workflows/test_telegram.yml"
-         target="_blank" rel="noopener">📨 測試 Telegram 通知</a>
+      <button id="tgBtn" class="btnlab" onclick="testTelegram()">📨 測試 Telegram 通知</button>
     </div>
   </div>
 </header>
@@ -395,16 +394,29 @@ async function refreshCommitted(){
 
 async function manualRefresh(){
   // Client-side only: re-polls the same public Bitstamp ticker + same-origin
-  // summary.json/state.json the automatic timers already use. This button
-  // does NOT trigger the GitHub Actions run early and does NOT touch
-  // Telegram -- sending a Telegram message requires the bot token, which
-  // must never be shipped to a public static page, so that stays a
-  // server-side Action (see the "測試 Telegram 通知" link, which opens the
-  // Actions tab where YOU click Run workflow -- nobody else can fire it).
+  // summary.json/state.json the automatic timers already use. No credentials
+  // involved either way.
   const btn=$("refreshBtn");
   btn.classList.add("busy");btn.textContent="更新緊…";
   try{ await Promise.all([pollLive(),refreshCommitted()]); }
   finally{ btn.classList.remove("busy");btn.textContent="🔄 即時更新報價"; }
+}
+
+const TG_WORKER_URL="https://btc123.z66hvm95g8.workers.dev";
+async function testTelegram(){
+  // The Telegram bot token/chat id live ONLY as Cloudflare Worker secrets --
+  // never in this page's source. The Worker itself holds a 20s global
+  // cooldown so this public button can't be hammered into a message flood.
+  const btn=$("tgBtn");
+  btn.classList.add("busy");btn.textContent="送緊…";
+  try{
+    const r=await fetch(TG_WORKER_URL,{method:"POST"});
+    const j=await r.json().catch(()=>({ok:false}));
+    btn.textContent=j.ok?"✅ 已送出":(r.status===429?"⏳ 請等20秒":"❌ 送唔到");
+  }catch(e){
+    btn.textContent="❌ 連唔到Worker";
+  }
+  setTimeout(()=>{btn.classList.remove("busy");btn.textContent="📨 測試 Telegram 通知";},2500);
 }
 
 refreshCommitted();

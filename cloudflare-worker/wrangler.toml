@@ -1,0 +1,7 @@
+name = "btc123"
+main = "worker.js"
+compatibility_date = "2026-09-20"
+
+# TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set as Worker *secrets*
+# (wrangler secret put ...), never written here and never shipped to
+# the browser. This file has no credentials in it.
