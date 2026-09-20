@@ -42,13 +42,13 @@
    "fees_cum": 70.9315735949443,
    "episodes": 0,
    "order_count": 1,
-   "last_signal_ts": 1789909200,
+   "last_signal_ts": 1789912800,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
-   "peak_nav": 100000.0,
-   "last_equity_hour": 497198,
+   "peak_nav": 100181.15096394993,
+   "last_equity_hour": 497199,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -77,34 +77,34 @@
    "fees_cum": 0.0,
    "episodes": 0,
    "order_count": 0,
-   "last_signal_ts": 1789909200,
+   "last_signal_ts": 1789912800,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 100000.0,
-   "last_equity_hour": 497198,
+   "last_equity_hour": 497199,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
   }
  },
  "last_run": {
-  "time": "2026-09-20 14:45 UTC",
+  "time": "2026-09-20 15:16 UTC",
   "ok": true,
   "quote_ok": true,
   "bars": 999,
-  "latest_bar": "2026-09-20 13:00 UTC",
+  "latest_bar": "2026-09-20 14:00 UTC",
   "orders": 0,
   "opportunities": 0,
   "activated": false,
-  "seconds": 1.35
+  "seconds": 1.19
  },
- "updated_utc": "2026-09-20 14:45 UTC",
+ "updated_utc": "2026-09-20 15:16 UTC",
  "health": {
   "consec": {},
   "last_alert": {},
   "current_issues": [],
-  "checked_utc": "2026-09-20 14:45 UTC"
+  "checked_utc": "2026-09-20 15:16 UTC"
  }
 }
