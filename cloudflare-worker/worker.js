@@ -35,6 +35,22 @@ async function sendTelegram(env, text) {
   return { ok: r.ok && j.ok === true, description: j.description };
 }
 
+// Diagnostic route (POST ?diag=1): never returns secret values, only their
+// lengths and the bot's own public identity via getMe -- safe to leave in
+// for future troubleshooting if a secret ever gets re-entered wrong.
+async function diagnose(env) {
+  const tokenLen = (env.TELEGRAM_BOT_TOKEN || "").length;
+  const chatLen = (env.TELEGRAM_CHAT_ID || "").length;
+  let getMe = null;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getMe`);
+    getMe = await r.json();
+  } catch (e) {
+    getMe = { error: String(e) };
+  }
+  return { token_length: tokenLen, chat_id_length: chatLen, getMe };
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -46,6 +62,13 @@ export default {
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
         status: 405,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+    const u = new URL(request.url);
+    if (u.searchParams.get("diag") === "1") {
+      const d = await diagnose(env);
+      return new Response(JSON.stringify(d), {
         headers: { ...headers, "Content-Type": "application/json" },
       });
     }
