@@ -174,19 +174,34 @@ function drawLines(hostId,tipId,series,markers,height){
   }
   if(0>=lo-pad&&0<=hi+pad)
     svg.appendChild(el("line",{x1:PL,x2:W-PR,y1:y(0),y2:y(0),stroke:"#7d879c","stroke-width":1.2,"stroke-dasharray":"5 5",opacity:.8}));
+  const endLabels=[];
   for(const k of keys){
     const m=META[k], pts=series[k];
     const dstr=pts.map(p=>`${x(p[0])},${y(p[1])}`).join(" ");
     svg.appendChild(el("polyline",{points:dstr,fill:"none",stroke:m.hex,"stroke-width":2,
       ...(m.dash?{"stroke-dasharray":m.dash}:{}),opacity:.95}));
+    if(pts.length===1)
+      svg.appendChild(el("circle",{cx:x(pts[0][0]),cy:y(pts[0][1]),r:3,fill:m.hex}));
     const last=pts[pts.length-1], lv=liveExt(k);
     if(lv!=null&&live){
       svg.appendChild(el("line",{x1:x(last[0]),y1:y(last[1]),x2:x(live.ts),y2:y(lv),
         stroke:m.hex,"stroke-width":1.6,"stroke-dasharray":"3 4",opacity:.7}));
       svg.appendChild(el("circle",{cx:x(live.ts),cy:y(lv),r:4.5,fill:"none",stroke:m.hex,"stroke-width":2}));
     }
-    const lbl=el("text",{x:W-PR+7,y:y(lv!=null?lv:last[1])+4,fill:m.hex,"font-size":11,"font-weight":700});
-    lbl.textContent=(lv!=null?pct(lv):pct(last[1]));svg.appendChild(lbl);
+    endLabels.push({hex:m.hex,v:(lv!=null?lv:last[1]),yy:y(lv!=null?lv:last[1])});
+  }
+  // de-collide right-edge value labels (min 13px apart, kept inside the plot)
+  endLabels.sort((a,b)=>a.yy-b.yy);
+  for(let i=1;i<endLabels.length;i++)
+    if(endLabels[i].yy-endLabels[i-1].yy<13) endLabels[i].yy=endLabels[i-1].yy+13;
+  for(let i=endLabels.length-1;i>=0;i--){
+    if(endLabels[i].yy>H-PB) endLabels[i].yy=H-PB;
+    if(i<endLabels.length-1&&endLabels[i+1].yy-endLabels[i].yy<13)
+      endLabels[i].yy=endLabels[i+1].yy-13;
+  }
+  for(const L of endLabels){
+    const lbl=el("text",{x:W-PR+52,y:L.yy+4,fill:L.hex,"font-size":11,"font-weight":700});
+    lbl.textContent=pct(L.v);svg.appendChild(lbl);
   }
   (markers||[]).forEach(mk=>{
     if(show[mk.sid]===false)return;

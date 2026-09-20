@@ -797,6 +797,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <a href="study.html" style="color:#4c9ffe;text-decoration:none">📄 成份研究報告(目標 · 方法 · 發現 · 分析 · 結論)→</a>
   &nbsp;·&nbsp;
   <a href="backtest.html" style="color:#4c9ffe;text-decoration:none">📊 回測數據 →</a>
+  &nbsp;·&nbsp;
+  <a href="lab/index.html" style="color:#4c9ffe;text-decoration:none">🧪 Forward Lab 前向紙盤(兩個未驗證候選,獨立帳戶)→</a>
 </footer>
 <script>
 const D = __PAYLOAD__;
