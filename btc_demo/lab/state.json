@@ -90,7 +90,7 @@
   }
  },
  "last_run": {
-  "time": "2026-09-20 14:21 UTC",
+  "time": "2026-09-20 14:45 UTC",
   "ok": true,
   "quote_ok": true,
   "bars": 999,
@@ -98,7 +98,13 @@
   "orders": 0,
   "opportunities": 0,
   "activated": false,
-  "seconds": 1.39
+  "seconds": 1.35
  },
- "updated_utc": "2026-09-20 14:21 UTC"
+ "updated_utc": "2026-09-20 14:45 UTC",
+ "health": {
+  "consec": {},
+  "last_alert": {},
+  "current_issues": [],
+  "checked_utc": "2026-09-20 14:45 UTC"
+ }
 }
