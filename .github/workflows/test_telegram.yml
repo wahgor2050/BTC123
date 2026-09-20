@@ -1,0 +1,36 @@
+name: Test Telegram
+
+# Manual-only connectivity check. Reuses btc_autotrade.send_telegram() (the
+# exact function the baseline bot and the forward lab both call) so a pass
+# here genuinely means both will be able to deliver alerts -- it is not a
+# separate, unverified code path. Never scheduled: only a human clicking
+# "Run workflow" in the Actions tab (or the dashboard's link to this page)
+# can trigger a message, so a public visitor to the static site cannot spam
+# the bot -- the token stays a repo secret, never shipped to the browser.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send test message via the shared send_telegram()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 - <<'PY'
+          from btc_autotrade import send_telegram, telegram_configured
+          import datetime, sys
+          if not telegram_configured():
+              print("::error::TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set as repo secrets.")
+              sys.exit(1)
+          now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+          ok = send_telegram(f"\U0001F9EA BTC123 connectivity test -- {now}\nIf you see this, the bot + chat ID are wired correctly.\nPaper trading only, no broker, no real orders.")
+          print("send_telegram() ->", ok)
+          if not ok:
+              print("::error::send_telegram() returned False -- check token/chat id.")
+              sys.exit(1)
+          PY

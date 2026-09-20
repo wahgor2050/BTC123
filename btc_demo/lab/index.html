@@ -54,6 +54,12 @@
   a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
   footer{color:var(--muted);font-size:11.5px;text-align:center;padding:0 22px 40px;line-height:1.8}
   .livebox{font-size:12px;font-variant-numeric:tabular-nums}
+  .btnlab{font-size:11.5px;color:var(--text);background:var(--panel2);border:1px solid var(--line);
+          border-radius:7px;padding:5px 10px;cursor:pointer;text-decoration:none;display:inline-block;
+          transition:border-color .15s}
+  .btnlab:hover{border-color:var(--accent)}
+  .btnlab:active{transform:translateY(1px)}
+  .btnlab.busy{opacity:.55;pointer-events:none}
 </style>
 </head>
 <body>
@@ -66,6 +72,11 @@
   <div style="text-align:right">
     <div class="livebox" id="livebox">—</div>
     <div class="muted" id="statusline">—</div>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button id="refreshBtn" class="btnlab" onclick="manualRefresh()">🔄 即時更新報價</button>
+      <a class="btnlab" href="https://github.com/wahgor2050/BTC123/actions/workflows/test_telegram.yml"
+         target="_blank" rel="noopener">📨 測試 Telegram 通知</a>
+    </div>
   </div>
 </header>
 <main>
@@ -380,6 +391,20 @@ async function refreshCommitted(){
        D.btc_anchor_price=(st.btc_anchor||{}).price||null; }catch(e){}
   $("honesty").textContent=(D.honesty||{}).label||"";
   statusline();legend();cards();drawAll();tables();
+}
+
+async function manualRefresh(){
+  // Client-side only: re-polls the same public Bitstamp ticker + same-origin
+  // summary.json/state.json the automatic timers already use. This button
+  // does NOT trigger the GitHub Actions run early and does NOT touch
+  // Telegram -- sending a Telegram message requires the bot token, which
+  // must never be shipped to a public static page, so that stays a
+  // server-side Action (see the "測試 Telegram 通知" link, which opens the
+  // Actions tab where YOU click Run workflow -- nobody else can fire it).
+  const btn=$("refreshBtn");
+  btn.classList.add("busy");btn.textContent="更新緊…";
+  try{ await Promise.all([pollLive(),refreshCommitted()]); }
+  finally{ btn.classList.remove("busy");btn.textContent="🔄 即時更新報價"; }
 }
 
 refreshCommitted();
