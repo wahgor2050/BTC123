@@ -353,15 +353,29 @@ function tables(){
      <a href="orders_${mk}.csv">orders_${mk}.csv</a> ·
      <a href="opportunities_${mk}.csv">opportunities_${mk}.csv</a> ·
      <a href="equity_${mk}.csv">equity_${mk}.csv</a> ·
+     <a href="https://github.com/wahgor2050/BTC123/blob/main/btc_demo/lab/evaluation_protocol.md">預先登記評估規則(凍結於啟動日)</a>${
+       (D.evaluation_protocol||{}).sha256?` <span class="muted">sha256 ${(D.evaluation_protocol.sha256).slice(0,12)}…</span>`:""} ·
      <a href="https://github.com/wahgor2050/BTC123/tree/main/btc_demo/lab">GitHub 上全部月份檔案 →</a>`;
 }
 
 function statusline(){
   const lr=D.last_run||{};
   const stale = live===null;
+  // 伺服器記錄年齡:hourly workflow 應該每小時 commit 一次;超過 2.5 小時
+  // 就標紅 —— 「冇交易」同「lab 停咗更新」係兩回事,唔准撈埋一齊。
+  let ageBadge="";
+  if(lr.time){
+    const t=Date.parse(lr.time.replace(" UTC","Z").replace(" ","T"));
+    if(!isNaN(t)){
+      const h=(Date.now()-t)/36e5;
+      if(h>2.5) ageBadge=` · <span class="badge red">lab 已 ${h.toFixed(1)} 小時冇更新 — 可能停咗</span>`;
+    }
+  }
+  const issues=((D.health||{}).current_issues)||[];
+  const healthBadge=issues.length?` · <span class="badge red">健康警示:${issues.join(", ")}</span>`:"";
   $("statusline").innerHTML =
     `伺服器記錄 ${lr.time||"–"} · 最新 K 線 ${lr.latest_bar||"–"}` +
-    (stale? ` · <span class="badge red">報價未更新</span>` : "");
+    (stale? ` · <span class="badge red">報價未更新</span>` : "") + ageBadge + healthBadge;
 }
 
 async function pollLive(){

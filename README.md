@@ -19,7 +19,20 @@ GitHub Actions minutes and git history separate from unrelated private work.
 - `btc_demo/lab/` — forward-lab state (`state.json`), append-only monthly archives
   (`orders_*.csv`, `opportunities_*.csv`, `equity_*.csv`), dashboard payload
   (`summary.json`) and the lab page (`index.html`).
-- `.github/workflows/btc_autotrade.yml` — daily baseline schedule (00:15 UTC).
+- `btc_demo/lab/evaluation_protocol.md` — **pre-registered evaluation rules**, frozen on
+  activation day before any forward data existed: exact retire/escalate/continue conditions
+  for the 30/90/180-day checkpoints. Its SHA-256 is stamped into `summary.json` hourly so
+  any edit is visible. "Escalate" only ever means *flag for a fresh matched-control study
+  plus adversarial audit* — never allocation, deployment, or a "validated" claim.
+- `btc_lab_review.py` — deterministic checkpoint-review exporter: reads only the
+  append-only archives, prints the pre-registered report (verdicts are hard-gated to
+  "N/A" before 30 forward days). Run `python btc_lab_review.py` any time.
+- `.github/workflows/btc_autotrade.yml` — daily baseline schedule (00:15 UTC); also runs
+  `btc_forward_lab.py --health-check`, a read-only watchdog on an independent schedule that
+  sends a 🩺 Telegram alert if the hourly lab has silently stopped updating, has an
+  unresolvable due exit, or shows ledger reconciliation failures. (Residual risk: if GitHub
+  disables all schedules after 60 days of repo inactivity, the watchdog dies with them —
+  GitHub's workflow-failure emails are the last backstop.)
 - `.github/workflows/btc_forward_lab.yml` — hourly lab schedule (minute 7).
 - `tests/` — offline behavior tests; both workflows run them before touching anything.
 - `research/` — reference scripts for signals under evaluation (not live).
