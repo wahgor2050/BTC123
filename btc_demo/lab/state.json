@@ -42,13 +42,13 @@
    "fees_cum": 70.9315735949443,
    "episodes": 0,
    "order_count": 1,
-   "last_signal_ts": 1789977600,
+   "last_signal_ts": 1789981200,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
-   "peak_nav": 102974.22245362226,
-   "last_equity_hour": 497217,
+   "peak_nav": 103478.16369790687,
+   "last_equity_hour": 497218,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -77,13 +77,13 @@
    "fees_cum": 0.0,
    "episodes": 0,
    "order_count": 0,
-   "last_signal_ts": 1789977600,
+   "last_signal_ts": 1789981200,
    "last_parent_signal_ts": 1789948800,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 100000.0,
-   "last_equity_hour": 497217,
+   "last_equity_hour": 497218,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -113,7 +113,7 @@
    "fees_cum": 0.0,
    "episodes": 0,
    "order_count": 0,
-   "last_signal_ts": 1789977600,
+   "last_signal_ts": 1789981200,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
@@ -122,38 +122,38 @@
    "exit_signal_ts": null,
    "exit_reason": null,
    "peak_nav": 100000.0,
-   "last_equity_hour": 497217,
+   "last_equity_hour": 497218,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0,
-   "last_z_eval_ts": 1789977600,
+   "last_z_eval_ts": 1789981200,
    "activation_ts": 1789922468,
    "activation_utc": "2026-09-20 16:41 UTC"
   }
  },
  "last_run": {
-  "time": "2026-09-21 09:19 UTC",
+  "time": "2026-09-21 10:19 UTC",
   "ok": true,
   "quote_ok": true,
   "funding_ok": true,
   "bars": 999,
-  "latest_bar": "2026-09-21 08:00 UTC",
+  "latest_bar": "2026-09-21 09:00 UTC",
   "orders": 0,
   "opportunities": 1,
   "activated": false,
-  "seconds": 2.51
+  "seconds": 1.43
  },
- "updated_utc": "2026-09-21 09:19 UTC",
+ "updated_utc": "2026-09-21 10:19 UTC",
  "health": {
   "consec": {},
   "last_alert": {},
   "current_issues": [],
-  "checked_utc": "2026-09-21 09:19 UTC"
+  "checked_utc": "2026-09-21 10:19 UTC"
  },
  "funding_last": {
-  "newest_settlement_ts": 1789981200,
-  "newest_settlement_utc": "2026-09-21 09:00 UTC",
-  "fetched_utc": "2026-09-21 09:19 UTC",
-  "n_settlements": 8850
+  "newest_settlement_ts": 1789984800,
+  "newest_settlement_utc": "2026-09-21 10:00 UTC",
+  "fetched_utc": "2026-09-21 10:19 UTC",
+  "n_settlements": 8851
  }
 }
