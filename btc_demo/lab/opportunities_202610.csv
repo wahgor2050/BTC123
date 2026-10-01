@@ -1,0 +1,2 @@
+event_id,strategy,signal_ts,signal_time,observed_ts,observed_late,close,high24,sma_fast,sma_slow,sigma_ann,rvol_num,rvol_den,rvol,target_weight,cooldown_ok,gate,decision,reason,data_status,venue,schema
+rvol2_breakout24h_v25_v1:1790874000,rvol2_breakout24h_v25_v1,1790874000,2026-10-01 17:00 UTC,1790879056,True,84872.63,84583.98,83817.42333333332,80533.71680555555,0.34875328392954363,119.20709539,42.640882565,2.795605724348825,0.7168391281743626,True,True,missed,stale_past_entry_deadline,ok,bitstamp:btcusd,1
