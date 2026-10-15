@@ -2,7 +2,7 @@
  "version": 2,
  "mode": "PAPER / DEMO \u2014 no broker connected",
  "created_utc": "2026-09-16 06:29 UTC",
- "updated_utc": "2026-10-14 00:51 UTC",
+ "updated_utc": "2026-10-15 00:49 UTC",
  "config": {
   "granularity": 86400,
   "history_bars": 200,
@@ -21,27 +21,19 @@
   "keep_equity": 2000,
   "keep_trades": 400
  },
- "cash": -1.4551915228366852e-11,
- "qty": 1.3928305460080768,
+ "cash": 115561.71744678229,
+ "qty": 0.0,
  "entry_price": 81275.747565,
  "entry_ts": 1789862400,
  "entry_time": "2026-09-20 00:00 UTC",
- "fees_open": 113.20334385817357,
+ "fees_open": 0.0,
  "target_weight": 0.0,
- "realised_vol": 38.86,
+ "realised_vol": 39.12,
  "peak_equity": 122027.3754806622,
  "throttled": false,
- "last_bar_ts": 1791849600,
+ "last_bar_ts": 1791936000,
  "first_price": 65776.0,
  "bars": [
-  [
-   1774742400,
-   66320.0,
-   67067.0,
-   64955.0,
-   65954.0,
-   1293.83955401
-  ],
   [
    1774828800,
    65961.0,
@@ -1625,6 +1617,14 @@
    80948.13,
    83093.57,
    1536.62439745
+  ],
+  [
+   1791936000,
+   83093.57,
+   84044.27,
+   81345.94,
+   81574.32,
+   1600.19935288
   ]
  ],
  "equity_curve": [
@@ -2531,6 +2531,10 @@
   [
    1791849600,
    115735.26
+  ],
+  [
+   1791936000,
+   115561.72
   ]
  ],
  "trades": [
@@ -2585,6 +2589,19 @@
    "pnl_pct": 8.743,
    "reason": "trend down",
    "bars_held": 27
+  },
+  {
+   "entry_time": "2026-09-20 00:00 UTC",
+   "exit_time": "2026-10-14 00:00 UTC",
+   "side": "long",
+   "qty": 1.39283055,
+   "entry_price": 81275.75,
+   "exit_price": 83052.02,
+   "fees": 228.88,
+   "pnl": 2245.17,
+   "pnl_pct": 1.983,
+   "reason": "trend down",
+   "bars_held": 24
   }
  ],
  "signals": [
@@ -2641,33 +2658,39 @@
    "time": "2026-09-20 00:00 UTC",
    "kind": "BUY",
    "text": "trend up, vol 44% \u2192 100% invested (1.392831 BTC @ $81,275.75)"
+  },
+  {
+   "ts": 1791936000,
+   "time": "2026-10-14 00:00 UTC",
+   "kind": "SELL",
+   "text": "trend down \u2192 flat | P&L $2,245.17 (1.98%)"
   }
  ],
  "stats": {
-  "equity": 115735.26,
-  "cash": -0.0,
-  "position_value": 115735.26,
-  "invested_pct": 100.0,
-  "total_return_pct": 15.735,
-  "buy_hold_return_pct": 26.328,
-  "trades": 4,
-  "wins": 2,
+  "equity": 115561.72,
+  "cash": 115561.72,
+  "position_value": 0.0,
+  "invested_pct": 0.0,
+  "total_return_pct": 15.562,
+  "buy_hold_return_pct": 24.018,
+  "trades": 5,
+  "wins": 3,
   "losses": 2,
-  "win_rate_pct": 50.0,
-  "avg_win": 8219.8,
+  "win_rate_pct": 60.0,
+  "avg_win": 6228.26,
   "avg_loss": -1561.53,
-  "profit_factor": 5.26,
+  "profit_factor": 5.98,
   "max_drawdown_pct": 8.69,
-  "total_fees": 847.87,
-  "last_price": 83093.57
+  "total_fees": 1076.75,
+  "last_price": 81574.32
  },
  "last_run": {
-  "time": "2026-10-14 00:51 UTC",
+  "time": "2026-10-15 00:49 UTC",
   "ok": true,
   "source": "bitstamp",
   "bars_processed": 1,
-  "last_bar": "2026-10-13 00:00 UTC",
-  "seconds": 0.62
+  "last_bar": "2026-10-14 00:00 UTC",
+  "seconds": 0.39
  },
  "want": [
   0.0,
@@ -2699,7 +2722,6 @@
   0.0,
   0.0,
   0.0,
-  1.0,
   1.0,
   1.0,
   1.0,
@@ -2868,13 +2890,13 @@
   1.0,
   1.0,
   1.0,
+  0.0,
   0.0
  ],
  "indicators": {
   "sma_fast": [
    null,
    null,
-   66966.67,
    67682.67,
    67735.67,
    67312.0,
@@ -3070,7 +3092,8 @@
    82387.0,
    83054.66,
    82782.55,
-   82839.48
+   82839.48,
+   82137.92
   ],
   "sma_slow": [
    null,
@@ -3102,7 +3125,6 @@
    null,
    null,
    null,
-   72825.6,
    73171.23,
    73471.7,
    73741.53,
@@ -3271,7 +3293,8 @@
    82278.55,
    82494.1,
    82643.33,
-   82852.82
+   82852.82,
+   82965.8
   ],
   "vol": [
    null,
@@ -3303,8 +3326,7 @@
    null,
    null,
    null,
-   35.68,
-   36.23,
+   36.18,
    36.39,
    35.86,
    36.53,
@@ -3472,7 +3494,8 @@
    37.6,
    37.6,
    38.65,
-   38.86
+   38.86,
+   39.12
   ]
  }
 }
