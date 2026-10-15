@@ -344,3 +344,4 @@ ts,time,strategy,bar_ts,bar_time,settlement_ts,settlement_age_sec,rate,z,positio
 1792046259,2026-10-15 06:37 UTC,funding_z168_limit_entry_v1,1792040400,2026-10-15 05:00 UTC,1792040400,0,1.84821375e-05,1.0982,flat,,,,1
 1792050035,2026-10-15 07:40 UTC,funding_z168_limit_entry_v1,1792044000,2026-10-15 06:00 UTC,,,,,flat,,,no_funding_data,1
 1792053237,2026-10-15 08:33 UTC,funding_z168_limit_entry_v1,1792047600,2026-10-15 07:00 UTC,1792047600,0,1.877176667e-05,1.1305,flat,,,,1
+1792056785,2026-10-15 09:33 UTC,funding_z168_limit_entry_v1,1792051200,2026-10-15 08:00 UTC,1792051200,0,1.877176667e-05,1.1268,flat,,,,1
