@@ -42,13 +42,13 @@
    "fees_cum": 142.99355868400994,
    "episodes": 1,
    "order_count": 2,
-   "last_signal_ts": 1792040400,
+   "last_signal_ts": 1792044000,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 105585.26769527164,
-   "last_equity_hour": 497790,
+   "last_equity_hour": 497791,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -77,13 +77,13 @@
    "fees_cum": 0.0,
    "episodes": 0,
    "order_count": 0,
-   "last_signal_ts": 1792040400,
+   "last_signal_ts": 1792044000,
    "last_parent_signal_ts": 1791651600,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 100000.0,
-   "last_equity_hour": 497790,
+   "last_equity_hour": 497791,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -113,7 +113,7 @@
    "fees_cum": 239.83922425895864,
    "episodes": 2,
    "order_count": 4,
-   "last_signal_ts": 1792040400,
+   "last_signal_ts": 1792044000,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
@@ -122,7 +122,7 @@
    "exit_signal_ts": null,
    "exit_reason": null,
    "peak_nav": 100528.64134482751,
-   "last_equity_hour": 497790,
+   "last_equity_hour": 497791,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 1790373600,
@@ -132,23 +132,27 @@
   }
  },
  "last_run": {
-  "time": "2026-10-15 06:37 UTC",
+  "time": "2026-10-15 07:40 UTC",
   "ok": true,
   "quote_ok": true,
-  "funding_ok": true,
+  "funding_ok": false,
   "bars": 999,
-  "latest_bar": "2026-10-15 05:00 UTC",
+  "latest_bar": "2026-10-15 06:00 UTC",
   "orders": 0,
-  "opportunities": 0,
+  "opportunities": 1,
   "activated": false,
-  "seconds": 2.0
+  "seconds": 1.5
  },
- "updated_utc": "2026-10-15 06:37 UTC",
+ "updated_utc": "2026-10-15 07:40 UTC",
  "health": {
-  "consec": {},
+  "consec": {
+   "no_funding": 1
+  },
   "last_alert": {},
-  "current_issues": [],
-  "checked_utc": "2026-10-15 06:37 UTC"
+  "current_issues": [
+   "no_funding"
+  ],
+  "checked_utc": "2026-10-15 07:40 UTC"
  },
  "funding_last": {
   "newest_settlement_ts": 1792044000,
