@@ -42,13 +42,13 @@
    "fees_cum": 142.99355868400994,
    "episodes": 1,
    "order_count": 2,
-   "last_signal_ts": 1795762800,
+   "last_signal_ts": 1795798800,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 105585.26769527164,
-   "last_equity_hour": 498824,
+   "last_equity_hour": 498834,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -77,13 +77,13 @@
    "fees_cum": 0.0,
    "episodes": 0,
    "order_count": 0,
-   "last_signal_ts": 1795762800,
+   "last_signal_ts": 1795798800,
    "last_parent_signal_ts": 1792587600,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
    "peak_nav": 100000.0,
-   "last_equity_hour": 498824,
+   "last_equity_hour": 498834,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 0
@@ -113,49 +113,56 @@
    "fees_cum": 356.5650009528274,
    "episodes": 3,
    "order_count": 6,
-   "last_signal_ts": 1795762800,
+   "last_signal_ts": 1795798800,
    "last_parent_signal_ts": 0,
    "entry_fill_ts": null,
    "entry_event_id": null,
    "exit_due_ts": null,
-   "resting": null,
+   "resting": {
+    "placed_ts": 1795802726,
+    "limit_px": 59787.9,
+    "qty": 1.6166485666975814,
+    "deadline_ts": 1795817126,
+    "signal_ts": 1795798800,
+    "event_id": "funding_z168_limit_entry_v1:1795798800"
+   },
    "exit_signal_ts": null,
    "exit_reason": null,
    "peak_nav": 100528.64134482751,
-   "last_equity_hour": 498824,
+   "last_equity_hour": 498834,
    "pending": [],
    "data_status": "ok",
    "last_entry_signal_ts": 1792616400,
-   "last_z_eval_ts": 1795762800,
+   "last_z_eval_ts": 1795798800,
    "activation_ts": 1789922468,
    "activation_utc": "2026-09-20 16:41 UTC"
   }
  },
  "last_run": {
-  "time": "2026-11-27 08:04 UTC",
+  "time": "2026-11-27 18:05 UTC",
   "ok": true,
   "quote_ok": true,
   "funding_ok": true,
   "bars": 999,
-  "latest_bar": "2026-11-27 07:00 UTC",
+  "latest_bar": "2026-11-27 17:00 UTC",
   "orders": 0,
-  "opportunities": 0,
+  "opportunities": 4,
   "activated": false,
-  "seconds": 2.26
+  "seconds": 1.4
  },
- "updated_utc": "2026-11-27 08:04 UTC",
+ "updated_utc": "2026-11-27 18:05 UTC",
  "health": {
   "consec": {
    "no_funding": 0
   },
   "last_alert": {},
   "current_issues": [],
-  "checked_utc": "2026-11-27 08:04 UTC"
+  "checked_utc": "2026-11-27 18:05 UTC"
  },
  "funding_last": {
-  "newest_settlement_ts": 1795766400,
-  "newest_settlement_utc": "2026-11-27 08:00 UTC",
-  "fetched_utc": "2026-11-27 08:04 UTC",
-  "n_settlements": 8779
+  "newest_settlement_ts": 1795802400,
+  "newest_settlement_utc": "2026-11-27 18:00 UTC",
+  "fetched_utc": "2026-11-27 18:05 UTC",
+  "n_settlements": 8789
  }
 }
