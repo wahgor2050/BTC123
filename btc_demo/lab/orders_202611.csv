@@ -1,0 +1,2 @@
+order_id,event_id,strategy,side,decision_ts,request_ts,quote_exchange_ts,bid,ask,mid,quote_size,fill_price,qty,gross_notional,fee,cash_before,qty_before,cash_after,qty_after,basis_after,realized_pnl_delta,reason,signal_ts,exit_due_ts,lateness_sec,diag_fill_price,diag_fee,schema
+funding_z168_limit_entry_v1:1795798800:BUY,funding_z168_limit_entry_v1:1795798800,funding_z168_limit_entry_v1,BUY,1795829031,1795829030.65,1795829030,60071.98,60071.99,60071.99,,59787.9,1.61664857,96656.02,19.33,96675.35,0.0,0.0,1.61664857,96675.35,0.0,limit_fill_entry,1795798800,,6874,60084.0,97.13,1
